@@ -1,9 +1,9 @@
 import React, { useRef, useEffect } from 'react';
 import { useThreeJS } from '../hooks/useThreeJS.js';
 
-const VasePreview = ({ geometry, material, lightingSettings }) => {
+const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = false }) => {
     const canvasRef = useRef();
-    const { updateMesh } = useThreeJS(canvasRef);
+    const { updateMesh } = useThreeJS(canvasRef, isRefractionMode);
 
     useEffect(() => {
         if (geometry && material) {
@@ -14,9 +14,12 @@ const VasePreview = ({ geometry, material, lightingSettings }) => {
     return (
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
             <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                🔆 3D Vorschau mit Lichtbrechung
+                {isRefractionMode ? '🌈' : '🔆'} 3D Vorschau {isRefractionMode ? 'mit Lichtbrechung' : '(Hell-Modus)'}
             </h2>
-            <div className="bg-slate-900 rounded-lg overflow-hidden border border-blue-500/30">
+            <div className={`rounded-lg overflow-hidden ${isRefractionMode
+                    ? 'bg-slate-900 border border-purple-500/30'
+                    : 'bg-sky-100 border border-blue-300/50'
+                }`}>
                 <canvas
                     ref={canvasRef}
                     className="w-full h-auto"
@@ -25,16 +28,32 @@ const VasePreview = ({ geometry, material, lightingSettings }) => {
             </div>
             <div className="mt-4 space-y-2">
                 <div className="text-sm text-blue-200">
-                    ✨ Die Vase rotiert automatisch mit spektakulären Lichtbrechungseffekten
+                    ✨ Die Vase rotiert automatisch {isRefractionMode ? 'mit spektakulären Lichtbrechungseffekten' : 'in optimaler Beleuchtung'}
                 </div>
-                <div className="text-xs text-blue-300 bg-blue-900/20 rounded p-2">
-                    💡 <strong>Lichtbrechung:</strong> Mehrfarbige Lichtquellen am Vasenboden erzeugen
-                    realistische Brechungseffekte durch das transparente Glasmaterial
-                </div>
-                <div className="text-xs text-green-300 bg-green-900/20 rounded p-2">
-                    🌈 <strong>Animierte Beleuchtung:</strong> Die Lichtquellen bewegen sich dynamisch
-                    für lebendige Reflexionen und Brechungen
-                </div>
+
+                {isRefractionMode ? (
+                    <div className="space-y-2">
+                        <div className="text-xs text-purple-300 bg-purple-900/20 rounded p-2">
+                            🌈 <strong>Lichtbrechungs-Modus:</strong> Mehrfarbige Lichtquellen am Vasenboden erzeugen
+                            realistische Brechungseffekte durch das transparente Glasmaterial
+                        </div>
+                        <div className="text-xs text-pink-300 bg-pink-900/20 rounded p-2">
+                            ⭐ <strong>Animierte Beleuchtung:</strong> Die Lichtquellen bewegen sich dynamisch
+                            für lebendige Reflexionen und Brechungen
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        <div className="text-xs text-blue-300 bg-blue-900/20 rounded p-2">
+                            🔆 <strong>Hell-Modus:</strong> Optimale Beleuchtung zum Betrachten der Vasenform
+                            und Anpassen der Parameter
+                        </div>
+                        <div className="text-xs text-green-300 bg-green-900/20 rounded p-2">
+                            🎨 <strong>Materialvorschau:</strong> Perfekte Sicht auf Farben, Texturen
+                            und die durch Audio generierte Form
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
