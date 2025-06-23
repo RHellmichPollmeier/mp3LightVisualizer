@@ -17,8 +17,8 @@ const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = 
                 {isRefractionMode ? '🌈' : '🔆'} 3D Vorschau {isRefractionMode ? 'mit Lichtbrechung' : '(Hell-Modus)'}
             </h2>
             <div className={`rounded-lg overflow-hidden ${isRefractionMode
-                    ? 'bg-slate-900 border border-purple-500/30'
-                    : 'bg-sky-100 border border-blue-300/50'
+                ? 'bg-slate-900 border border-purple-500/30'
+                : 'bg-sky-100 border border-blue-300/50'
                 }`}>
                 <canvas
                     ref={canvasRef}
@@ -45,7 +45,7 @@ const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = 
                             🧱 <strong>Materialstärke:</strong> Anpassbare Glasdicke für verschiedene Brechungseffekte
                         </div>
                         <div className="text-xs text-emerald-300 bg-emerald-900/20 rounded p-2">
-                            🌊 <strong>Wellenmuster:</strong> Spiralförmige Oberflächenrillen verstärken die Lichtbrechung
+                            🌀 <strong>Wellenmuster:</strong> Spiralförmige Oberflächenrillen verstärken die Lichtbrechung
                         </div>
                     </div>
                 ) : (
@@ -62,7 +62,7 @@ const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = 
                             🧱 <strong>Materialstärke:</strong> Echtzeit-Vorschau der Glasdicke von 0.5-8mm
                         </div>
                         <div className="text-xs text-purple-300 bg-purple-900/20 rounded p-2">
-                            🌊 <strong>Oberflächenstrukturen:</strong> 4 verschiedene Wellenmuster für einzigartige Designs
+                            🌀 <strong>Oberflächenstrukturen:</strong> 4 verschiedene Wellenmuster für einzigartige Designs
                         </div>
                     </div>
                 )}

@@ -35,7 +35,16 @@ const App = () => {
     smoothing: 0.2,
     frequencyInfluence: 1.5,
     organicComplexity: 1.3,
-    verticalDistortion: 0.8
+    verticalDistortion: 0.8,
+    // NEUE WELLENMUSTER-EINSTELLUNGEN
+    wavePattern: {
+      enabled: true,
+      type: 'spiral',        // 'spiral', 'vertical', 'horizontal', 'diamond'
+      amplitude: 0.4,        // Stärke der Wellen
+      frequency: 12,         // Anzahl der Wellen
+      spiralTurns: 3.0,      // Spiralwindungen (nur für Spiral-Typ)
+      phase: 0               // Phasenverschiebung in Grad
+    }
   });
 
   const [lightingSettings, setLightingSettings] = useState({
@@ -124,8 +133,8 @@ const App = () => {
                   <button
                     onClick={() => setIsRefractionMode(!isRefractionMode)}
                     className={`relative w-16 h-8 rounded-full transition-all duration-300 ${isRefractionMode
-                        ? 'bg-purple-600 shadow-lg shadow-purple-500/50'
-                        : 'bg-yellow-500 shadow-lg shadow-yellow-500/50'
+                      ? 'bg-purple-600 shadow-lg shadow-purple-500/50'
+                      : 'bg-yellow-500 shadow-lg shadow-yellow-500/50'
                       }`}
                   >
                     <div
@@ -178,14 +187,15 @@ const App = () => {
 
       {/* Info - Aktualisiert */}
       <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-        <h3 className="text-lg font-semibold text-white mb-3">✨ Erweiterte Lichtbrechung mit Materialstärke</h3>
+        <h3 className="text-lg font-semibold text-white mb-3">✨ Erweiterte Lichtbrechung mit Oberflächenstrukturen</h3>
         <div className="text-blue-200 space-y-2">
           <p>🔆 <strong>Hell-Modus:</strong> Optimale Beleuchtung zum Betrachten und Anpassen der Vasenform</p>
           <p>🌈 <strong>Lichtbrechungs-Modus:</strong> Spektakuläre Lichteffekte mit Bodenbeleuchtung</p>
+          <p>🌀 <strong>Spiralwellen:</strong> Elegante gedrehte Rillen wie in handwerklichen Glasvasen</p>
           <p>🧱 <strong>Materialstärke:</strong> Von hauchzartem 0.5mm bis zu massiven 8mm Glas</p>
           <p>💎 Realistische Lichtbrechung mit Environment-Mapping und mehreren Lichtquellen</p>
           <p>🎛️ Vollständige Kontrolle über Brechungsindex, Transmission und Glasdicke</p>
-          <p>🎨 4 Materialstile: Warm, Kühl, Bernstein und Rauchglas mit individueller Stärke</p>
+          <p>🎨 4 Materialstile + 4 Oberflächenmuster für einzigartige Designs</p>
           <p>🔄 Echtzeit-Animation der Lichtquellen für lebendige Brechungseffekte</p>
         </div>
       </div>
