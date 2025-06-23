@@ -56,7 +56,7 @@ const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = 
                         </div>
                         {baseGeometry && (
                             <div className="text-xs text-yellow-300 bg-yellow-900/20 rounded p-2">
-                                🏺 <strong>STL-Sockel:</strong> Automatisch angepasst - Vasenfuß passt perfekt in den Sockel
+                                🏺 <strong>STL-Sockel:</strong> Automatisch angepasst - Vase sitzt stabil auf dem Sockel
                             </div>
                         )}
                     </div>
@@ -78,7 +78,7 @@ const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = 
                         </div>
                         {baseGeometry && (
                             <div className="text-xs text-orange-300 bg-orange-900/20 rounded p-2">
-                                🏺 <strong>STL-Sockel:</strong> Perfekte Passform - Nutdurchmesser = Vasenfuß-Innenradius
+                                🏺 <strong>STL-Sockel:</strong> Sockel steht stabil auf dem Boden, Vase sitzt perfekt darauf
                             </div>
                         )}
                     </div>

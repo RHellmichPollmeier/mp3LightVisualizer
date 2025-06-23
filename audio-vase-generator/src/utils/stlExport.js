@@ -46,25 +46,27 @@ export const combineGeometries = (vaseGeometry, baseGeometry, vaseSettings) => {
     const baseGeo = baseGeometry.clone();
 
     // Automatische Größenanpassung des Sockels
-    const targetRadius = vaseSettings.baseRadius * 0.9; // Etwas kleiner als Vasenfuß
+    const targetRadius = vaseSettings.baseRadius * 1.1; // Etwas größer als Vasenfuß
 
     // Sockel-Bounding Box berechnen
     baseGeo.computeBoundingBox();
-    const box = baseGeo.boundingBox;
-    const currentRadius = Math.max(box.max.x - box.min.x, box.max.z - box.min.z) / 2;
+    const originalBox = baseGeo.boundingBox;
+    const currentRadius = Math.max(originalBox.max.x - originalBox.min.x, originalBox.max.z - originalBox.min.z) / 2;
 
     // Skalierung anwenden
     const scale = targetRadius / currentRadius;
     baseGeo.scale(scale, scale, scale);
 
-    // Vase über dem Sockel positionieren
-    const baseHeight = (box.max.y - box.min.y) * scale;
-    vaseGeo.translate(0, baseHeight + 2, 0); // 2 Einheiten Abstand
-
-    // Sockel auf den Boden setzen
+    // Sockel korrekt positionieren: Unterseite auf y=0
     baseGeo.computeBoundingBox();
-    const newBox = baseGeo.boundingBox;
-    baseGeo.translate(0, -newBox.min.y, 0);
+    const scaledBox = baseGeo.boundingBox;
+    baseGeo.translate(0, -scaledBox.min.y, 0);
+
+    // Vase auf der Oberseite des Sockels positionieren
+    const sockelHoehe = scaledBox.max.y - scaledBox.min.y;
+    const vaseHalbeHoehe = 10; // Halbe Vasenhöhe
+    const vaseYPosition = sockelHoehe - vaseHalbeHoehe;
+    vaseGeo.translate(0, vaseYPosition, 0);
 
     // Geometrien zusammenführen
     const mergedGeometry = new THREE.BufferGeometry();

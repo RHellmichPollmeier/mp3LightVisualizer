@@ -40,8 +40,8 @@ const ExportControls = ({ audioData, geometry, baseGeometry, vaseSettings, onGen
                     <button
                         onClick={() => setExportMode('vase')}
                         className={`p-3 rounded-lg text-left transition-all ${exportMode === 'vase'
-                                ? 'bg-blue-600/50 border border-blue-400 text-white'
-                                : 'bg-white/10 border border-white/20 text-blue-200 hover:bg-white/20'
+                            ? 'bg-blue-600/50 border border-blue-400 text-white'
+                            : 'bg-white/10 border border-white/20 text-blue-200 hover:bg-white/20'
                             }`}
                     >
                         <div className="flex items-center gap-2">
@@ -55,10 +55,10 @@ const ExportControls = ({ audioData, geometry, baseGeometry, vaseSettings, onGen
                         onClick={() => setExportMode('base')}
                         disabled={!canExportBase}
                         className={`p-3 rounded-lg text-left transition-all ${!canExportBase
-                                ? 'bg-gray-600/30 border border-gray-500/30 text-gray-400 cursor-not-allowed'
-                                : exportMode === 'base'
-                                    ? 'bg-green-600/50 border border-green-400 text-white'
-                                    : 'bg-white/10 border border-white/20 text-blue-200 hover:bg-white/20'
+                            ? 'bg-gray-600/30 border border-gray-500/30 text-gray-400 cursor-not-allowed'
+                            : exportMode === 'base'
+                                ? 'bg-green-600/50 border border-green-400 text-white'
+                                : 'bg-white/10 border border-white/20 text-blue-200 hover:bg-white/20'
                             }`}
                     >
                         <div className="flex items-center gap-2">
@@ -74,10 +74,10 @@ const ExportControls = ({ audioData, geometry, baseGeometry, vaseSettings, onGen
                         onClick={() => setExportMode('combined')}
                         disabled={!canExportCombined}
                         className={`p-3 rounded-lg text-left transition-all ${!canExportCombined
-                                ? 'bg-gray-600/30 border border-gray-500/30 text-gray-400 cursor-not-allowed'
-                                : exportMode === 'combined'
-                                    ? 'bg-purple-600/50 border border-purple-400 text-white'
-                                    : 'bg-white/10 border border-white/20 text-blue-200 hover:bg-white/20'
+                            ? 'bg-gray-600/30 border border-gray-500/30 text-gray-400 cursor-not-allowed'
+                            : exportMode === 'combined'
+                                ? 'bg-purple-600/50 border border-purple-400 text-white'
+                                : 'bg-white/10 border border-white/20 text-blue-200 hover:bg-white/20'
                             }`}
                     >
                         <div className="flex items-center gap-2">
@@ -86,7 +86,7 @@ const ExportControls = ({ audioData, geometry, baseGeometry, vaseSettings, onGen
                         </div>
                         <div className="text-xs opacity-80 mt-1">
                             {canExportCombined
-                                ? 'Kombinierte STL mit perfekter Passform'
+                                ? 'Kombinierte STL mit perfekter Positionierung'
                                 : 'Benötigt Vase und STL-Sockel'
                             }
                         </div>
@@ -129,8 +129,8 @@ const ExportControls = ({ audioData, geometry, baseGeometry, vaseSettings, onGen
                 {canExportCombined && (
                     <div className="mt-3 p-3 bg-green-900/20 rounded border border-green-500/30">
                         <p className="text-green-200 text-xs">
-                            ✅ <strong>Perfekte Passform:</strong> Der Vasenfuß-Innenradius wurde automatisch
-                            an den Sockel-Nutdurchmesser angepasst.
+                            ✅ <strong>Perfekte Positionierung:</strong> Der Sockel steht stabil auf dem Boden
+                            und die Vase sitzt exakt auf der Sockel-Oberseite.
                         </p>
                     </div>
                 )}

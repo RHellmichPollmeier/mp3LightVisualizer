@@ -243,22 +243,24 @@ const BaseUpload = ({ baseSTL, baseGeometry, onSTLUpload, onGeometryLoaded }) =>
                 <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-500/30">
                     <h3 className="text-blue-200 font-medium mb-2">🏺 STL-Sockel System</h3>
                     <div className="text-blue-200 text-sm space-y-1">
-                        <p>• <strong>Automatische Anpassung:</strong> Vasenfuß-Innenradius = Sockel-Nutdurchmesser</p>
-                        <p>• <strong>Perfekte Passform:</strong> Vase sitzt exakt auf dem Sockel</p>
+                        <p>• <strong>Korrekte Positionierung:</strong> Sockel steht mit Unterseite auf Boden</p>
+                        <p>• <strong>Perfekte Platzierung:</strong> Vase sitzt exakt auf Sockel-Oberseite</p>
+                        <p>• <strong>Automatische Skalierung:</strong> Sockel passt sich der Vasengröße an</p>
                         <p>• <strong>Unterstützte Formate:</strong> ASCII und Binary STL</p>
-                        <p>• <strong>Echtzeit-Vorschau:</strong> Sofortige 3D-Anzeige mit Vase</p>
+                        <p>• <strong>Echtzeit-Vorschau:</strong> Sofortige 3D-Anzeige mit korrekter Positionierung</p>
                     </div>
                 </div>
 
                 {/* Sockel-Material Info */}
                 {baseGeometry && (
                     <div className="bg-green-900/20 rounded-lg p-4 border border-green-500/30">
-                        <h3 className="text-green-200 font-medium mb-2">✅ Sockel geladen</h3>
+                        <h3 className="text-green-200 font-medium mb-2">✅ Sockel positioniert</h3>
                         <div className="text-green-200 text-sm space-y-1">
-                            <p>• Material: Mattes Keramik/Holz-Finish</p>
-                            <p>• Automatische Größenanpassung aktiv</p>
-                            <p>• Position: Unter der Vase zentriert</p>
-                            <p>• Bereit für STL-Export mit Vase</p>
+                            <p>• <strong>Sockel-Unterseite:</strong> Exakt auf dem Boden (y=0)</p>
+                            <p>• <strong>Vase-Position:</strong> Sitzt direkt auf der Sockel-Oberseite</p>
+                            <p>• <strong>Automatische Skalierung:</strong> Sockel passt perfekt zur Vasengröße</p>
+                            <p>• <strong>Material:</strong> Mattes Keramik/Holz-Finish</p>
+                            <p>• <strong>Export:</strong> Bereit für kombinierten STL-Export</p>
                         </div>
                     </div>
                 )}

@@ -207,7 +207,7 @@ const App = () => {
         <div className="text-blue-200 space-y-2">
           <p>🔆 <strong>Hell-Modus:</strong> Optimale Beleuchtung zum Betrachten und Anpassen der Vasenform</p>
           <p>🌈 <strong>Lichtbrechungs-Modus:</strong> Spektakuläre Lichteffekte mit Bodenbeleuchtung</p>
-          <p>🏺 <strong>STL-Sockel:</strong> Perfekt passender Sockel - Nutdurchmesser = Vasenfuß-Innenradius</p>
+          <p>🏺 <strong>STL-Sockel:</strong> Perfekt passender Sockel - Vase sitzt exakt auf der Oberseite</p>
           <p>🌀 <strong>Spiralwellen:</strong> Elegante gedrehte Rillen wie in handwerklichen Glasvasen</p>
           <p>🧱 <strong>Materialstärke:</strong> Von hauchzartem 0.5mm bis zu massiven 8mm Glas</p>
           <p>💎 Realistische Lichtbrechung mit Environment-Mapping und mehreren Lichtquellen</p>
