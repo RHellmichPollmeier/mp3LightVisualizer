@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 export const generateSTLString = (geometry) => {
     const vertices = geometry.attributes.position.array;
     const indices = geometry.index ? geometry.index.array : null;
@@ -35,6 +37,89 @@ export const generateSTLString = (geometry) => {
 
     stl += 'endsolid AudioVase\n';
     return stl;
+};
+
+// NEUE FUNKTION: Geometrien kombinieren (Vase + Sockel)
+export const combineGeometries = (vaseGeometry, baseGeometry, vaseSettings) => {
+    // Vase-Geometrie klonen und positionieren
+    const vaseGeo = vaseGeometry.clone();
+    const baseGeo = baseGeometry.clone();
+
+    // Automatische Größenanpassung des Sockels
+    const targetRadius = vaseSettings.baseRadius * 0.9; // Etwas kleiner als Vasenfuß
+
+    // Sockel-Bounding Box berechnen
+    baseGeo.computeBoundingBox();
+    const box = baseGeo.boundingBox;
+    const currentRadius = Math.max(box.max.x - box.min.x, box.max.z - box.min.z) / 2;
+
+    // Skalierung anwenden
+    const scale = targetRadius / currentRadius;
+    baseGeo.scale(scale, scale, scale);
+
+    // Vase über dem Sockel positionieren
+    const baseHeight = (box.max.y - box.min.y) * scale;
+    vaseGeo.translate(0, baseHeight + 2, 0); // 2 Einheiten Abstand
+
+    // Sockel auf den Boden setzen
+    baseGeo.computeBoundingBox();
+    const newBox = baseGeo.boundingBox;
+    baseGeo.translate(0, -newBox.min.y, 0);
+
+    // Geometrien zusammenführen
+    const mergedGeometry = new THREE.BufferGeometry();
+
+    // Vertices und Normalen extrahieren
+    const vasePositions = vaseGeo.attributes.position.array;
+    const vaseNormals = vaseGeo.attributes.normal.array;
+    const basePositions = baseGeo.attributes.position.array;
+    const baseNormals = baseGeo.attributes.normal.array;
+
+    // Arrays kombinieren
+    const combinedPositions = new Float32Array(vasePositions.length + basePositions.length);
+    const combinedNormals = new Float32Array(vaseNormals.length + baseNormals.length);
+
+    combinedPositions.set(vasePositions, 0);
+    combinedPositions.set(basePositions, vasePositions.length);
+
+    combinedNormals.set(vaseNormals, 0);
+    combinedNormals.set(baseNormals, vaseNormals.length);
+
+    // Indices anpassen
+    let combinedIndices = [];
+
+    // Vase-Indices
+    if (vaseGeo.index) {
+        combinedIndices.push(...vaseGeo.index.array);
+    } else {
+        // Non-indexed geometry
+        for (let i = 0; i < vasePositions.length / 3; i++) {
+            combinedIndices.push(i);
+        }
+    }
+
+    // Base-Indices (mit Offset)
+    const vaseVertexCount = vasePositions.length / 3;
+    if (baseGeo.index) {
+        for (let i = 0; i < baseGeo.index.array.length; i++) {
+            combinedIndices.push(baseGeo.index.array[i] + vaseVertexCount);
+        }
+    } else {
+        // Non-indexed geometry
+        for (let i = 0; i < basePositions.length / 3; i++) {
+            combinedIndices.push(i + vaseVertexCount);
+        }
+    }
+
+    // Attribute setzen
+    mergedGeometry.setAttribute('position', new THREE.BufferAttribute(combinedPositions, 3));
+    mergedGeometry.setAttribute('normal', new THREE.BufferAttribute(combinedNormals, 3));
+    mergedGeometry.setIndex(combinedIndices);
+
+    // Normalen neu berechnen für saubere Oberflächen
+    mergedGeometry.computeVertexNormals();
+
+    return mergedGeometry;
 };
 
 export const exportSTL = (geometry, filename = 'audio-vase.stl') => {

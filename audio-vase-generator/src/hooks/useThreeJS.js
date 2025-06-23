@@ -1,5 +1,5 @@
 // ============================================
-// src/hooks/useThreeJS.js - DUALER BELEUCHTUNGSMODUS
+// src/hooks/useThreeJS.js - DUALER BELEUCHTUNGSMODUS + STL-SOCKEL
 // ============================================
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
@@ -10,6 +10,7 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
     const rendererRef = useRef();
     const cameraRef = useRef();
     const meshRef = useRef();
+    const baseMeshRef = useRef();  // NEUER REF für STL-Sockel
     const innerLightRef = useRef();
     const animationIdRef = useRef();
     const environmentLightsRef = useRef([]);
@@ -266,11 +267,27 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
             // Vase Rotation
             if (meshRef.current) {
                 meshRef.current.rotation.y += 0.008;
-                if (isRefractionMode) {
-                    meshRef.current.position.y = Math.sin(time * 0.5) * 0.3;
-                } else {
-                    meshRef.current.position.y = Math.sin(time) * 0.5;
+                
+                // Basis-Position der Vase (auf Sockel oder Boden)
+                let baseY = 0;
+                if (baseMeshRef.current) {
+                    baseMeshRef.current.geometry.computeBoundingBox();
+                    const box = baseMeshRef.current.geometry.boundingBox;
+                    const scale = baseMeshRef.current.scale.x;
+                    baseY = (box.max.y - box.min.y) * scale - 10;
                 }
+                
+                // Sanfte Animation um die Basis-Position
+                if (isRefractionMode) {
+                    meshRef.current.position.y = baseY + Math.sin(time * 0.5) * 0.3;
+                } else {
+                    meshRef.current.position.y = baseY + Math.sin(time) * 0.5;
+                }
+            }
+
+            // Sockel leichte Rotation (langsamer als Vase)
+            if (baseMeshRef.current) {
+                baseMeshRef.current.rotation.y += 0.003;
             }
 
             // Lichtanimation - Nur wenn es Lichter gibt
@@ -329,7 +346,7 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
     const updateMesh = (geometry, material) => {
         if (!sceneRef.current) return;
 
-        // Altes Mesh und Licht entfernen
+        // Altes Mesh entfernen
         if (meshRef.current) {
             sceneRef.current.remove(meshRef.current);
         }
@@ -339,7 +356,18 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
 
         if (geometry && material) {
             const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.y = 0;
+            
+            // Vase-Position berechnen - DIREKT auf dem Sockel oder auf dem Boden
+            let baseOffset = 0;
+            if (baseMeshRef.current) {
+                // Sockel-Höhe ermitteln
+                baseMeshRef.current.geometry.computeBoundingBox();
+                const box = baseMeshRef.current.geometry.boundingBox;
+                const scale = baseMeshRef.current.scale.x; // Uniform scaling
+                baseOffset = (box.max.y - box.min.y) * scale - 10; // -10 = halbe Vasenhöhe
+            }
+            
+            mesh.position.y = baseOffset;
             mesh.castShadow = true;
             mesh.receiveShadow = true;
 
@@ -350,8 +378,63 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
             if (lightModeRef.current) {
                 const vaseHeight = 20;
                 const innerLightGroup = createInnerLight(vaseHeight);
+                innerLightGroup.position.y = baseOffset; // Lichter auf Sockelhöhe
                 sceneRef.current.add(innerLightGroup);
                 innerLightRef.current = innerLightGroup;
+            }
+        }
+    };
+
+    // NEUE FUNKTION: STL-Sockel aktualisieren
+    const updateBase = (baseGeometry, vaseSettings) => {
+        if (!sceneRef.current) return;
+
+        // Alten Sockel entfernen
+        if (baseMeshRef.current) {
+            sceneRef.current.remove(baseMeshRef.current);
+        }
+
+        if (baseGeometry && vaseSettings) {
+            // Sockel-Material erstellen
+            const baseMaterial = new THREE.MeshStandardMaterial({
+                color: 0x8d6e63,        // Warmes Braun
+                metalness: 0.1,
+                roughness: 0.7,
+                transparent: false,
+                opacity: 1.0
+            });
+
+            const baseMesh = new THREE.Mesh(baseGeometry.clone(), baseMaterial);
+            
+            // Automatische Größenanpassung basierend auf Vasenfuß
+            const targetRadius = vaseSettings.baseRadius * 1.1; // Etwas GRÖSSER als Vasenfuß für perfekte Auflagefläche
+            
+            // Sockel-Bounding Box berechnen
+            baseGeometry.computeBoundingBox();
+            const box = baseGeometry.boundingBox;
+            const currentRadius = Math.max(box.max.x - box.min.x, box.max.z - box.min.z) / 2;
+            
+            // Skalierung berechnen
+            const scale = targetRadius / currentRadius;
+            baseMesh.scale.setScalar(scale);
+            
+            // Position: Auf dem Boden, zentriert
+            baseMesh.position.set(0, 0, 0);
+            baseMesh.castShadow = true;
+            baseMesh.receiveShadow = true;
+
+            sceneRef.current.add(baseMesh);
+            baseMeshRef.current = baseMesh;
+
+            // Sockel-Höhe berechnen für Vase-Positionierung
+            const scaledHeight = (box.max.y - box.min.y) * scale;
+
+            // Vase neu positionieren falls sie existiert - DIREKT auf dem Sockel
+            if (meshRef.current) {
+                meshRef.current.position.y = scaledHeight - 10; // Vase sitzt AUF dem Sockel (10 = halbe Vasenhöhe)
+            }
+            if (innerLightRef.current) {
+                innerLightRef.current.position.y = scaledHeight - 10; // Lichter auch auf Sockelhöhe
             }
         }
     };
@@ -360,7 +443,8 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
         scene: sceneRef.current,
         renderer: rendererRef.current,
         camera: cameraRef.current,
-        updateMesh
+        updateMesh,
+        updateBase  // NEUE FUNKTION für STL-Sockel
     };
 };
 

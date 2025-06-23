@@ -1,9 +1,9 @@
 import React, { useRef, useEffect } from 'react';
 import { useThreeJS } from '../hooks/useThreeJS.js';
 
-const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = false }) => {
+const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = false, baseGeometry, vaseSettings }) => {
     const canvasRef = useRef();
-    const { updateMesh } = useThreeJS(canvasRef, isRefractionMode);
+    const { updateMesh, updateBase } = useThreeJS(canvasRef, isRefractionMode);
 
     useEffect(() => {
         if (geometry && material) {
@@ -11,10 +11,17 @@ const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = 
         }
     }, [geometry, material, updateMesh]);
 
+    useEffect(() => {
+        if (baseGeometry && vaseSettings) {
+            updateBase(baseGeometry, vaseSettings);
+        }
+    }, [baseGeometry, vaseSettings, updateBase]);
+
     return (
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
             <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 {isRefractionMode ? '🌈' : '🔆'} 3D Vorschau {isRefractionMode ? 'mit Lichtbrechung' : '(Hell-Modus)'}
+                {baseGeometry && <span className="text-sm text-green-400">+ STL-Sockel</span>}
             </h2>
             <div className={`rounded-lg overflow-hidden ${isRefractionMode
                 ? 'bg-slate-900 border border-purple-500/30'
@@ -47,6 +54,11 @@ const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = 
                         <div className="text-xs text-emerald-300 bg-emerald-900/20 rounded p-2">
                             🌀 <strong>Wellenmuster:</strong> Spiralförmige Oberflächenrillen verstärken die Lichtbrechung
                         </div>
+                        {baseGeometry && (
+                            <div className="text-xs text-yellow-300 bg-yellow-900/20 rounded p-2">
+                                🏺 <strong>STL-Sockel:</strong> Automatisch angepasst - Vasenfuß passt perfekt in den Sockel
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="space-y-2">
@@ -64,6 +76,11 @@ const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = 
                         <div className="text-xs text-purple-300 bg-purple-900/20 rounded p-2">
                             🌀 <strong>Oberflächenstrukturen:</strong> 4 verschiedene Wellenmuster für einzigartige Designs
                         </div>
+                        {baseGeometry && (
+                            <div className="text-xs text-orange-300 bg-orange-900/20 rounded p-2">
+                                🏺 <strong>STL-Sockel:</strong> Perfekte Passform - Nutdurchmesser = Vasenfuß-Innenradius
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

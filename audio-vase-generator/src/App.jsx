@@ -6,6 +6,7 @@ import VasePreview from './components/VasePreview.jsx';
 import ExportControls from './components/ExportControls.jsx';
 import LampshadeStyleSelector from './components/LampshadeStyleSelector.jsx';
 import LightingControls from './components/LightingControls.jsx';
+import BaseUpload from './components/BaseUpload.jsx';
 import { useAudioAnalysis } from './hooks/useAudioAnalysis.js';
 import { createVaseGeometry } from './mesh/vaseGeometry.js';
 import {
@@ -20,6 +21,10 @@ const App = () => {
   const { audioFile, audioData, isAnalyzing, error, analyzeFile } = useAudioAnalysis();
   const [vaseGeometry, setVaseGeometry] = useState(null);
   const [lampshadeStyle, setLampshadeStyle] = useState('warm');
+
+  // NEUER STATE: STL-Sockel
+  const [baseSTL, setBaseSTL] = useState(null);
+  const [baseGeometry, setBaseGeometry] = useState(null);
 
   // NEUER STATE: Lichtmodus Toggle
   const [isRefractionMode, setIsRefractionMode] = useState(false);
@@ -107,6 +112,13 @@ const App = () => {
               onFileUpload={analyzeFile}
             />
 
+            <BaseUpload
+              baseSTL={baseSTL}
+              baseGeometry={baseGeometry}
+              onSTLUpload={setBaseSTL}
+              onGeometryLoaded={setBaseGeometry}
+            />
+
             {/* NEUER LICHTMODUS TOGGLE */}
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
@@ -169,6 +181,8 @@ const App = () => {
             <ExportControls
               audioData={audioData}
               geometry={vaseGeometry}
+              baseGeometry={baseGeometry}
+              vaseSettings={settings}
               onGenerate={generateVase}
             />
           </div>
@@ -181,21 +195,24 @@ const App = () => {
             material={getMaterial()}
             lightingSettings={lightingSettings}
             isRefractionMode={isRefractionMode}
+            baseGeometry={baseGeometry}
+            vaseSettings={settings}
           />
         </div>
       </div>
 
       {/* Info - Aktualisiert */}
       <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-        <h3 className="text-lg font-semibold text-white mb-3">✨ Erweiterte Lichtbrechung mit Oberflächenstrukturen</h3>
+        <h3 className="text-lg font-semibold text-white mb-3">✨ Vollständige Audio-Vase mit STL-Sockel</h3>
         <div className="text-blue-200 space-y-2">
           <p>🔆 <strong>Hell-Modus:</strong> Optimale Beleuchtung zum Betrachten und Anpassen der Vasenform</p>
           <p>🌈 <strong>Lichtbrechungs-Modus:</strong> Spektakuläre Lichteffekte mit Bodenbeleuchtung</p>
+          <p>🏺 <strong>STL-Sockel:</strong> Perfekt passender Sockel - Nutdurchmesser = Vasenfuß-Innenradius</p>
           <p>🌀 <strong>Spiralwellen:</strong> Elegante gedrehte Rillen wie in handwerklichen Glasvasen</p>
           <p>🧱 <strong>Materialstärke:</strong> Von hauchzartem 0.5mm bis zu massiven 8mm Glas</p>
           <p>💎 Realistische Lichtbrechung mit Environment-Mapping und mehreren Lichtquellen</p>
           <p>🎛️ Vollständige Kontrolle über Brechungsindex, Transmission und Glasdicke</p>
-          <p>🎨 4 Materialstile + 4 Oberflächenmuster für einzigartige Designs</p>
+          <p>🎨 4 Materialstile + 4 Oberflächenmuster + STL-Sockel für einzigartige Designs</p>
           <p>🔄 Echtzeit-Animation der Lichtquellen für lebendige Brechungseffekte</p>
         </div>
       </div>
