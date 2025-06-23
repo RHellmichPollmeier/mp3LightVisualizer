@@ -187,10 +187,44 @@ export const createVaseMaterial = () => {
     });
 };
 
-// Neue Funktion für warme Innenbeleuchtung
-export const createInnerLight = () => {
-    const light = new THREE.PointLight(0xffcc80, 2, 50); // Warmes Orange
-    light.position.set(0, 0, 0);
-    light.castShadow = false;
-    return light;
+// VERBESSERTE Funktion für Bodenlicht mit spektakulären Lichtbrechungseffekten
+export const createInnerLight = (vaseHeight = 20) => {
+    // Hauptlicht am Boden der Vase
+    const mainLight = new THREE.PointLight(0xffffff, 4.0, 60); // Helles weißes Licht
+    mainLight.position.set(0, -vaseHeight / 2 - 2, 0); // Am Boden der Vase
+    mainLight.castShadow = false; // Keine Schatten für saubere Brechung
+
+    // Lichtgruppe für mehrere Lichtquellen
+    const lightGroup = new THREE.Group();
+    lightGroup.add(mainLight);
+
+    // Zusätzliche farbige Lichter für Regenbogeneffekte
+    const colorLights = [
+        { color: 0xff6b6b, position: [3, -vaseHeight / 2 - 1, 0], intensity: 2.0 },   // Rot
+        { color: 0x4ecdc4, position: [-3, -vaseHeight / 2 - 1, 0], intensity: 2.0 },  // Türkis
+        { color: 0x45b7d1, position: [0, -vaseHeight / 2 - 1, 3], intensity: 2.0 },   // Blau
+        { color: 0xffa726, position: [0, -vaseHeight / 2 - 1, -3], intensity: 2.0 },  // Orange
+    ];
+
+    colorLights.forEach(lightConfig => {
+        const light = new THREE.PointLight(lightConfig.color, lightConfig.intensity, 40);
+        light.position.set(...lightConfig.position);
+        light.castShadow = false;
+        lightGroup.add(light);
+    });
+
+    // Spot Light von unten für dramatische Effekte
+    const spotLight = new THREE.SpotLight(0xffffff, 3.0, 50, Math.PI * 0.3, 0.1, 1);
+    spotLight.position.set(0, -vaseHeight / 2 - 5, 0);
+    spotLight.target.position.set(0, 0, 0);
+    spotLight.castShadow = false;
+    lightGroup.add(spotLight);
+    lightGroup.add(spotLight.target);
+
+    // Hemisphere Light für sanfte Aufhellung
+    const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0xffa726, 0.6);
+    hemiLight.position.set(0, -vaseHeight / 2, 0);
+    lightGroup.add(hemiLight);
+
+    return lightGroup;
 };

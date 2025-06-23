@@ -82,35 +82,37 @@ const App = () => {
   return (
     <Layout>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Kontrollen */}
-        <div className="lg:col-span-1 space-y-6">
-          <AudioUpload
-            audioFile={audioFile}
-            isAnalyzing={isAnalyzing}
-            error={error}
-            onFileUpload={analyzeFile}
-          />
+        {/* Kontrollen - JETZT SCROLLBAR */}
+        <div className="lg:col-span-1">
+          <div className="max-h-[calc(100vh-12rem)] overflow-y-auto pr-2 space-y-6 scrollbar-thin scrollbar-thumb-blue-600 scrollbar-track-blue-300/20">
+            <AudioUpload
+              audioFile={audioFile}
+              isAnalyzing={isAnalyzing}
+              error={error}
+              onFileUpload={analyzeFile}
+            />
 
-          <LampshadeStyleSelector
-            selectedStyle={lampshadeStyle}
-            onStyleChange={setLampshadeStyle}
-          />
+            <LampshadeStyleSelector
+              selectedStyle={lampshadeStyle}
+              onStyleChange={setLampshadeStyle}
+            />
 
-          <LightingControls
-            lightingSettings={lightingSettings}
-            onLightingChange={setLightingSettings}
-          />
+            <LightingControls
+              lightingSettings={lightingSettings}
+              onLightingChange={setLightingSettings}
+            />
 
-          <VaseSettings
-            settings={settings}
-            onChange={setSettings}
-          />
+            <VaseSettings
+              settings={settings}
+              onChange={setSettings}
+            />
 
-          <ExportControls
-            audioData={audioData}
-            geometry={vaseGeometry}
-            onGenerate={generateVase}
-          />
+            <ExportControls
+              audioData={audioData}
+              geometry={vaseGeometry}
+              onGenerate={generateVase}
+            />
+          </div>
         </div>
 
         {/* 3D Vorschau */}
@@ -129,6 +131,7 @@ const App = () => {
         <div className="text-blue-200 space-y-2">
           <p>💎 Realistische Lichtbrechung mit Environment-Mapping und mehreren Lichtquellen</p>
           <p>🌈 Dynamische Beleuchtung mit animierten Point Lights für komplexe Reflexionen</p>
+          <p>🔆 Innenlicht am Vasenboden für spektakuläre Lichtbrechungseffekte</p>
           <p>🎛️ Vollständige Kontrolle über Brechungsindex, Transmission und Umgebungslicht</p>
           <p>🎨 4 Beleuchtungs-Presets: Warm, Kühl, Dramatisch und Sanft</p>
           <p>🔄 Echtzeit-Animation der Lichtquellen für lebendige Brechungseffekte</p>
