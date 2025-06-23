@@ -1,21 +1,21 @@
 import React, { useRef, useEffect } from 'react';
 import { useThreeJS } from '../hooks/useThreeJS.js';
 
-const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = false, baseGeometry, vaseSettings }) => {
+const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = false, baseGeometry, vaseSettings, basePlacementPosition = { x: 0, z: 0 } }) => {
     const canvasRef = useRef();
     const { updateMesh, updateBase } = useThreeJS(canvasRef, isRefractionMode);
 
     useEffect(() => {
         if (geometry && material) {
-            updateMesh(geometry, material);
+            updateMesh(geometry, material, basePlacementPosition);
         }
-    }, [geometry, material, updateMesh]);
+    }, [geometry, material, updateMesh, basePlacementPosition]);
 
     useEffect(() => {
         if (baseGeometry && vaseSettings) {
-            updateBase(baseGeometry, vaseSettings);
+            updateBase(baseGeometry, vaseSettings, basePlacementPosition);
         }
-    }, [baseGeometry, vaseSettings, updateBase]);
+    }, [baseGeometry, vaseSettings, updateBase, basePlacementPosition]);
 
     return (
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">

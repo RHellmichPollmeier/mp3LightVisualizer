@@ -25,6 +25,7 @@ const App = () => {
   // NEUER STATE: STL-Sockel
   const [baseSTL, setBaseSTL] = useState(null);
   const [baseGeometry, setBaseGeometry] = useState(null);
+  const [basePlacementPosition, setBasePlacementPosition] = useState({ x: 0, z: 0 });
 
   // NEUER STATE: Lichtmodus Toggle
   const [isRefractionMode, setIsRefractionMode] = useState(false);
@@ -117,6 +118,7 @@ const App = () => {
               baseGeometry={baseGeometry}
               onSTLUpload={setBaseSTL}
               onGeometryLoaded={setBaseGeometry}
+              onPlacementChange={setBasePlacementPosition}
             />
 
             {/* NEUER LICHTMODUS TOGGLE */}
@@ -197,6 +199,7 @@ const App = () => {
             isRefractionMode={isRefractionMode}
             baseGeometry={baseGeometry}
             vaseSettings={settings}
+            basePlacementPosition={basePlacementPosition}
           />
         </div>
       </div>

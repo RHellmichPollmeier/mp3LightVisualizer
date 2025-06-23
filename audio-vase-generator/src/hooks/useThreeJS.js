@@ -268,8 +268,14 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
             if (meshRef.current) {
                 meshRef.current.rotation.y += 0.008;
 
-                // Basis-Position der Vase ermitteln
+                // Basis-Position der Vase ermitteln (inklusive Placement-Position)
                 let vaseBaseY = 0; // Standard: auf dem Boden
+                let vaseBaseX = 0; // X-Offset von Placement
+                let vaseBaseZ = 0; // Z-Offset von Placement
+
+                // Placement-Position aus der aktuellen Mesh-Position lesen
+                vaseBaseX = meshRef.current.position.x;
+                vaseBaseZ = meshRef.current.position.z;
 
                 if (baseMeshRef.current) {
                     // Sockel ist vorhanden: Basis-Position auf Sockel berechnen
@@ -284,12 +290,16 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
                     vaseBaseY = sockelOberseite - vaseHalbeHoehe;
                 }
 
-                // Sanfte Animation um die Basis-Position
-                if (isRefractionMode) {
-                    meshRef.current.position.y = vaseBaseY + Math.sin(time * 0.5) * 0.3;
-                } else {
-                    meshRef.current.position.y = vaseBaseY + Math.sin(time) * 0.5;
-                }
+                // Sanfte Animation um die Basis-Position (mit Placement-Offset)
+                const animationOffset = isRefractionMode
+                    ? Math.sin(time * 0.5) * 0.3
+                    : Math.sin(time) * 0.5;
+
+                meshRef.current.position.set(
+                    vaseBaseX,
+                    vaseBaseY + animationOffset,
+                    vaseBaseZ
+                );
             }
 
             // Sockel leichte Rotation (langsamer als Vase)
@@ -317,8 +327,16 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
 
             // Spezielle Animation für Lichtbrechungs-Modus
             if (innerLightRef.current && isRefractionMode) {
-                // Lichter mit der Vase synchronisieren
+                // Lichter mit der Vase synchronisieren (inklusive Placement-Position)
                 let vaseBaseY = 0;
+                let vaseBaseX = 0;
+                let vaseBaseZ = 0;
+
+                if (meshRef.current) {
+                    vaseBaseX = meshRef.current.position.x;
+                    vaseBaseZ = meshRef.current.position.z;
+                }
+
                 if (baseMeshRef.current) {
                     baseMeshRef.current.geometry.computeBoundingBox();
                     const sockelBox = baseMeshRef.current.geometry.boundingBox;
@@ -331,7 +349,12 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
                     vaseBaseY = sockelOberseite - vaseHalbeHoehe;
                 }
 
-                innerLightRef.current.position.y = vaseBaseY + Math.sin(time * 0.5) * 0.3;
+                const animationOffset = Math.sin(time * 0.5) * 0.3;
+                innerLightRef.current.position.set(
+                    vaseBaseX,
+                    vaseBaseY + animationOffset,
+                    vaseBaseZ
+                );
 
                 const mainLight = innerLightRef.current.children[0];
                 if (mainLight) {
@@ -365,7 +388,7 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
         };
     }, [canvasRef, isRefractionMode]); // isRefractionMode als Dependency
 
-    const updateMesh = (geometry, material) => {
+    const updateMesh = (geometry, material, placementPosition = { x: 0, z: 0 }) => {
         if (!sceneRef.current) return;
 
         // Altes Mesh entfernen
@@ -381,6 +404,8 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
 
             // Vase-Position berechnen
             let vaseYPosition = 0; // Standard: auf dem Boden
+            let vaseXPosition = placementPosition.x || 0;
+            let vaseZPosition = placementPosition.z || 0;
 
             if (baseMeshRef.current) {
                 // Sockel ist vorhanden: Vase auf Sockel positionieren
@@ -398,7 +423,7 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
                 vaseYPosition = sockelOberseite - vaseHalbeHoehe;
             }
 
-            mesh.position.y = vaseYPosition;
+            mesh.position.set(vaseXPosition, vaseYPosition, vaseZPosition);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
 
@@ -409,7 +434,7 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
             if (lightModeRef.current) {
                 const vaseHeight = 20;
                 const innerLightGroup = createInnerLight(vaseHeight);
-                innerLightGroup.position.y = vaseYPosition; // Lichter auf gleicher Höhe wie Vase
+                innerLightGroup.position.set(vaseXPosition, vaseYPosition, vaseZPosition); // Lichter auf gleicher Position wie Vase
                 sceneRef.current.add(innerLightGroup);
                 innerLightRef.current = innerLightGroup;
             }
@@ -417,7 +442,7 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
     };
 
     // NEUE FUNKTION: STL-Sockel aktualisieren
-    const updateBase = (baseGeometry, vaseSettings) => {
+    const updateBase = (baseGeometry, vaseSettings, placementPosition = { x: 0, z: 0 }) => {
         if (!sceneRef.current) return;
 
         // Alten Sockel entfernen
@@ -462,17 +487,25 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
             sceneRef.current.add(baseMesh);
             baseMeshRef.current = baseMesh;
 
-            // Vase-Position: DIREKT auf der Oberseite des Sockels
+            // Vase-Position: DIREKT auf der Oberseite des Sockels + Placement-Offset
             const sockelOberseite = -scaledMinY + scaledHeight;
             const vaseHalbeHoehe = 10; // Halbe Vasenhöhe
             const vaseBodenPosition = sockelOberseite - vaseHalbeHoehe;
 
-            // Vase neu positionieren falls sie existiert
+            // Vase neu positionieren falls sie existiert (mit Placement-Offset)
             if (meshRef.current) {
-                meshRef.current.position.y = vaseBodenPosition;
+                meshRef.current.position.set(
+                    placementPosition.x || 0,
+                    vaseBodenPosition,
+                    placementPosition.z || 0
+                );
             }
             if (innerLightRef.current) {
-                innerLightRef.current.position.y = vaseBodenPosition; // Lichter auf gleicher Höhe
+                innerLightRef.current.position.set(
+                    placementPosition.x || 0,
+                    vaseBodenPosition,
+                    placementPosition.z || 0
+                ); // Lichter auf gleicher Position wie Vase
             }
         }
     };
