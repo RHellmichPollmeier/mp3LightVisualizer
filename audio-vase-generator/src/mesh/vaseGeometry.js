@@ -7,7 +7,7 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
 
     const {
         height, baseRadius, topRadius, segments, heightSegments,
-        amplification, noiseIntensity, smoothing, noiseScale
+        amplification, noiseIntensity, smoothing, wavePattern
     } = settings;
 
     const geometry = new THREE.CylinderGeometry(topRadius, baseRadius, height, segments, heightSegments, true);
@@ -79,8 +79,16 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
             amplitude * 8
         ) * amplitude * 0.8;
 
-        // Neuer Radius mit allen Effekten
-        const radiusModification = amplitudeEffect + noiseEffect + frequencyWave;
+        // NEUE WELLENMUSTER-EFFEKTE
+        let waveEffect = 0;
+        if (wavePattern && wavePattern.enabled) {
+            waveEffect = calculateWavePattern(
+                angle, normalizedY, wavePattern, amplitude, frequency
+            );
+        }
+
+        // Neuer Radius mit allen Effekten (inkl. Wellenmuster)
+        const radiusModification = amplitudeEffect + noiseEffect + frequencyWave + waveEffect;
         const newRadius = Math.max(radius * 0.3, radius + radiusModification);
 
         // Neue Position berechnen
@@ -96,6 +104,50 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
     geometry.computeVertexNormals();
 
     return geometry;
+};
+
+// NEUE FUNKTION: Wellenmuster berechnen
+const calculateWavePattern = (angle, normalizedY, wavePattern, amplitude, frequency) => {
+    const { type, amplitude: waveAmp, frequency: waveFreq, spiralTurns, phase } = wavePattern;
+    const phaseRad = (phase * Math.PI) / 180; // Grad zu Radiant
+
+    let waveValue = 0;
+
+    switch (type) {
+        case 'spiral':
+            // Spiralförmige Wellen - wie im Bild!
+            const spiralAngle = angle + normalizedY * spiralTurns * Math.PI * 2;
+            waveValue = Math.sin(spiralAngle * waveFreq + phaseRad) * waveAmp;
+
+            // Zusätzliche Detailwellen für realistischeren Effekt
+            waveValue += Math.sin(spiralAngle * waveFreq * 2 + phaseRad * 1.5) * waveAmp * 0.3;
+            break;
+
+        case 'vertical':
+            // Vertikale Rillen
+            waveValue = Math.sin(angle * waveFreq + phaseRad) * waveAmp;
+            break;
+
+        case 'horizontal':
+            // Horizontale Ringe
+            waveValue = Math.sin(normalizedY * Math.PI * waveFreq + phaseRad) * waveAmp;
+            break;
+
+        case 'diamond':
+            // Rautenmuster
+            const diamondPattern = Math.sin(angle * waveFreq + normalizedY * Math.PI * 4 + phaseRad) +
+                Math.sin((angle + Math.PI / 4) * waveFreq - normalizedY * Math.PI * 4 + phaseRad);
+            waveValue = diamondPattern * waveAmp * 0.5;
+            break;
+    }
+
+    // Wellenstärke an Audio-Amplitude anpassen
+    waveValue *= (0.7 + amplitude * 0.6); // Basis + Audio-Einfluss
+
+    // Frequenz-basierte Modulation für dynamische Effekte
+    waveValue *= (0.8 + frequency * 0.4);
+
+    return waveValue;
 };
 
 // Kubische Interpolation für Audio-Daten
@@ -187,7 +239,7 @@ export const createVaseMaterial = () => {
     });
 };
 
-// VERBESSERTE Funktion für Bodenlicht mit spektakulären Lichtbrechungseffekten
+// Bodenlicht-Gruppe für spektakuläre Lichtbrechungseffekte
 export const createInnerLight = (vaseHeight = 20) => {
     // Hauptlicht am Boden der Vase
     const mainLight = new THREE.PointLight(0xffffff, 4.0, 60); // Helles weißes Licht
