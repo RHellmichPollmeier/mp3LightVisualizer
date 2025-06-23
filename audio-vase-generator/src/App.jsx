@@ -5,15 +5,15 @@ import VaseSettings from './components/VaseSettings.jsx';
 import VasePreview from './components/VasePreview.jsx';
 import ExportControls from './components/ExportControls.jsx';
 import LampshadeStyleSelector from './components/LampshadeStyleSelector.jsx';
+import LightingControls from './components/LightingControls.jsx';
 import { useAudioAnalysis } from './hooks/useAudioAnalysis.js';
+import { createVaseGeometry } from './mesh/vaseGeometry.js';
 import {
-  createVaseGeometry,
-  createVaseMaterial,
   createWarmLampshade,
   createCoolLampshade,
   createAmberLampshade,
   createSmokedLampshade
-} from './mesh/vaseGeometry.js';
+} from './hooks/useThreeJS.js';
 import { PerlinNoise } from './utils/perlinNoise.js';
 
 const App = () => {
@@ -34,21 +34,43 @@ const App = () => {
     verticalDistortion: 0.8
   });
 
+  const [lightingSettings, setLightingSettings] = useState({
+    keyLightIntensity: 1.2,
+    colorTemperature: 3000,
+    envMapIntensity: 2.0,
+    ior: 1.45,
+    transmission: 0.95,
+    ambientIntensity: 0.15,
+    animationSpeed: 1.0,
+    shadowIntensity: 0.7
+  });
+
   const perlinNoise = useRef(new PerlinNoise());
 
-  // Material basierend auf Stil erstellen
+  // Material basierend auf Stil und Beleuchtungseinstellungen erstellen
   const getMaterial = useCallback(() => {
+    let baseMaterial;
     switch (lampshadeStyle) {
       case 'cool':
-        return createCoolLampshade();
+        baseMaterial = createCoolLampshade();
+        break;
       case 'amber':
-        return createAmberLampshade();
+        baseMaterial = createAmberLampshade();
+        break;
       case 'smoked':
-        return createSmokedLampshade();
+        baseMaterial = createSmokedLampshade();
+        break;
       default:
-        return createWarmLampshade();
+        baseMaterial = createWarmLampshade();
     }
-  }, [lampshadeStyle]);
+
+    // Beleuchtungseinstellungen anwenden
+    baseMaterial.envMapIntensity = lightingSettings.envMapIntensity;
+    baseMaterial.ior = lightingSettings.ior;
+    baseMaterial.transmission = lightingSettings.transmission;
+
+    return baseMaterial;
+  }, [lampshadeStyle, lightingSettings]);
 
   const generateVase = useCallback(() => {
     if (!audioData) return;
@@ -74,6 +96,11 @@ const App = () => {
             onStyleChange={setLampshadeStyle}
           />
 
+          <LightingControls
+            lightingSettings={lightingSettings}
+            onLightingChange={setLightingSettings}
+          />
+
           <VaseSettings
             settings={settings}
             onChange={setSettings}
@@ -91,18 +118,20 @@ const App = () => {
           <VasePreview
             geometry={vaseGeometry}
             material={getMaterial()}
+            lightingSettings={lightingSettings}
           />
         </div>
       </div>
 
       {/* Info */}
       <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-        <h3 className="text-lg font-semibold text-white mb-3">💡 Lampenschirm Vorschau</h3>
+        <h3 className="text-lg font-semibold text-white mb-3">✨ Erweiterte Lichtbrechung</h3>
         <div className="text-blue-200 space-y-2">
-          <p>✨ Die Vase wird jetzt als durchsichtiger Lampenschirm mit warmem Innenlicht dargestellt</p>
-          <p>🎨 Wählen Sie verschiedene Glasstile aus: Warm, Kühl, Bernstein oder Rauchglas</p>
-          <p>🌊 Die organischen Formen entstehen durch Ihre Audio-Daten kombiniert mit Perlin Noise</p>
-          <p>🖨️ Das Ergebnis kann direkt als STL für den 3D-Druck exportiert werden</p>
+          <p>💎 Realistische Lichtbrechung mit Environment-Mapping und mehreren Lichtquellen</p>
+          <p>🌈 Dynamische Beleuchtung mit animierten Point Lights für komplexe Reflexionen</p>
+          <p>🎛️ Vollständige Kontrolle über Brechungsindex, Transmission und Umgebungslicht</p>
+          <p>🎨 4 Beleuchtungs-Presets: Warm, Kühl, Dramatisch und Sanft</p>
+          <p>🔄 Echtzeit-Animation der Lichtquellen für lebendige Brechungseffekte</p>
         </div>
       </div>
     </Layout>
