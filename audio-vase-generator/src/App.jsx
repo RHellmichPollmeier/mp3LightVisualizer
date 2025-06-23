@@ -4,27 +4,51 @@ import AudioUpload from './components/AudioUpload.jsx';
 import VaseSettings from './components/VaseSettings.jsx';
 import VasePreview from './components/VasePreview.jsx';
 import ExportControls from './components/ExportControls.jsx';
+import LampshadeStyleSelector from './components/LampshadeStyleSelector.jsx';
 import { useAudioAnalysis } from './hooks/useAudioAnalysis.js';
-import { createVaseGeometry, createVaseMaterial } from './mesh/vaseGeometry.js';
+import {
+  createVaseGeometry,
+  createVaseMaterial,
+  createWarmLampshade,
+  createCoolLampshade,
+  createAmberLampshade,
+  createSmokedLampshade
+} from './mesh/vaseGeometry.js';
 import { PerlinNoise } from './utils/perlinNoise.js';
 
 const App = () => {
   const { audioFile, audioData, isAnalyzing, error, analyzeFile } = useAudioAnalysis();
   const [vaseGeometry, setVaseGeometry] = useState(null);
-  const [vaseMaterial] = useState(createVaseMaterial());
+  const [lampshadeStyle, setLampshadeStyle] = useState('warm');
   const [settings, setSettings] = useState({
     height: 20,
     baseRadius: 8,
     topRadius: 6,
     segments: 64,
     heightSegments: 100,
-    amplification: 2,
-    noiseScale: 0.1,
-    noiseIntensity: 0.5,
-    smoothing: 0.3
+    amplification: 3,
+    noiseIntensity: 1.2,
+    smoothing: 0.2,
+    frequencyInfluence: 1.5,
+    organicComplexity: 1.3,
+    verticalDistortion: 0.8
   });
 
   const perlinNoise = useRef(new PerlinNoise());
+
+  // Material basierend auf Stil erstellen
+  const getMaterial = useCallback(() => {
+    switch (lampshadeStyle) {
+      case 'cool':
+        return createCoolLampshade();
+      case 'amber':
+        return createAmberLampshade();
+      case 'smoked':
+        return createSmokedLampshade();
+      default:
+        return createWarmLampshade();
+    }
+  }, [lampshadeStyle]);
 
   const generateVase = useCallback(() => {
     if (!audioData) return;
@@ -45,6 +69,11 @@ const App = () => {
             onFileUpload={analyzeFile}
           />
 
+          <LampshadeStyleSelector
+            selectedStyle={lampshadeStyle}
+            onStyleChange={setLampshadeStyle}
+          />
+
           <VaseSettings
             settings={settings}
             onChange={setSettings}
@@ -61,8 +90,19 @@ const App = () => {
         <div className="lg:col-span-2">
           <VasePreview
             geometry={vaseGeometry}
-            material={vaseMaterial}
+            material={getMaterial()}
           />
+        </div>
+      </div>
+
+      {/* Info */}
+      <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+        <h3 className="text-lg font-semibold text-white mb-3">💡 Lampenschirm Vorschau</h3>
+        <div className="text-blue-200 space-y-2">
+          <p>✨ Die Vase wird jetzt als durchsichtiger Lampenschirm mit warmem Innenlicht dargestellt</p>
+          <p>🎨 Wählen Sie verschiedene Glasstile aus: Warm, Kühl, Bernstein oder Rauchglas</p>
+          <p>🌊 Die organischen Formen entstehen durch Ihre Audio-Daten kombiniert mit Perlin Noise</p>
+          <p>🖨️ Das Ergebnis kann direkt als STL für den 3D-Druck exportiert werden</p>
         </div>
       </div>
     </Layout>

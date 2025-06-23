@@ -168,19 +168,29 @@ const smoothGeometry = (positions, segments, heightSegments, iterations = 2) => 
 
 export const createVaseMaterial = () => {
     return new THREE.MeshPhysicalMaterial({
-        color: 0x87ceeb,
-        metalness: 0.05,
-        roughness: 0.15,
-        transmission: 0.9,
+        color: 0xfff8e1,           // Warmes Elfenbein/Cremeweiß
+        metalness: 0.0,
+        roughness: 0.1,
+        transmission: 0.95,        // Sehr durchsichtig
         transparent: true,
-        opacity: 0.7,
-        thickness: 0.8,
-        envMapIntensity: 1.2,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.05,
-        ior: 1.5, // Index of refraction für Glas
-        sheen: 0.2,
-        sheenRoughness: 0.1,
-        sheenColor: 0xffffff
+        opacity: 0.15,             // Sehr durchsichtig für Lampenschirm-Effekt
+        thickness: 1.2,
+        envMapIntensity: 0.8,
+        clearcoat: 0.8,
+        clearcoatRoughness: 0.1,
+        ior: 1.45,                 // Glas IOR
+        sheen: 0.5,                // Sanfter Glanz
+        sheenRoughness: 0.2,
+        sheenColor: 0xffecb3,      // Warmer Schimmer
+        emissive: 0xfff3e0,        // Sanftes warmes Leuchten
+        emissiveIntensity: 0.05    // Subtiles Eigenleuchten
     });
+};
+
+// Neue Funktion für warme Innenbeleuchtung
+export const createInnerLight = () => {
+    const light = new THREE.PointLight(0xffcc80, 2, 50); // Warmes Orange
+    light.position.set(0, 0, 0);
+    light.castShadow = false;
+    return light;
 };
