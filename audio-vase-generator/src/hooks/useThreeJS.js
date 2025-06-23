@@ -364,8 +364,12 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
     };
 };
 
-// Materialien - Angepasst an Modus
-export const createWarmLampshade = (isRefractionMode = false) => {
+// Materialien - Angepasst an Modus UND Materialstärke
+export const createWarmLampshade = (isRefractionMode = false, customThickness = null) => {
+    // Basis-Thickness je nach Modus, kann aber überschrieben werden
+    const baseThickness = isRefractionMode ? 1.8 : 1.2;
+    const thickness = customThickness || baseThickness;
+
     if (isRefractionMode) {
         // Optimiert für Lichtbrechung
         return new THREE.MeshPhysicalMaterial({
@@ -375,7 +379,7 @@ export const createWarmLampshade = (isRefractionMode = false) => {
             transmission: 0.97,
             transparent: true,
             opacity: 0.08,
-            thickness: 1.8,
+            thickness: thickness,
             ior: 1.52,
             emissive: 0xfff3e0,
             emissiveIntensity: 0.03,
@@ -396,7 +400,7 @@ export const createWarmLampshade = (isRefractionMode = false) => {
             transmission: 0.85,
             transparent: true,
             opacity: 0.2,
-            thickness: 1.2,
+            thickness: thickness,
             ior: 1.45,
             emissive: 0xfff3e0,
             emissiveIntensity: 0.05,
@@ -411,7 +415,10 @@ export const createWarmLampshade = (isRefractionMode = false) => {
     }
 };
 
-export const createCoolLampshade = (isRefractionMode = false) => {
+export const createCoolLampshade = (isRefractionMode = false, customThickness = null) => {
+    const baseThickness = isRefractionMode ? 1.5 : 1.2;
+    const thickness = customThickness || baseThickness;
+
     if (isRefractionMode) {
         return new THREE.MeshPhysicalMaterial({
             color: 0xe3f2fd,
@@ -420,7 +427,7 @@ export const createCoolLampshade = (isRefractionMode = false) => {
             transmission: 0.98,
             transparent: true,
             opacity: 0.06,
-            thickness: 1.5,
+            thickness: thickness,
             ior: 1.55,
             emissive: 0xe1f5fe,
             emissiveIntensity: 0.02,
@@ -440,7 +447,7 @@ export const createCoolLampshade = (isRefractionMode = false) => {
             transmission: 0.88,
             transparent: true,
             opacity: 0.15,
-            thickness: 1.2,
+            thickness: thickness,
             ior: 1.5,
             emissive: 0xe1f5fe,
             emissiveIntensity: 0.03,
@@ -455,7 +462,10 @@ export const createCoolLampshade = (isRefractionMode = false) => {
     }
 };
 
-export const createAmberLampshade = (isRefractionMode = false) => {
+export const createAmberLampshade = (isRefractionMode = false, customThickness = null) => {
+    const baseThickness = isRefractionMode ? 2.2 : 1.8;
+    const thickness = customThickness || baseThickness;
+
     if (isRefractionMode) {
         return new THREE.MeshPhysicalMaterial({
             color: 0xffc107,
@@ -464,7 +474,7 @@ export const createAmberLampshade = (isRefractionMode = false) => {
             transmission: 0.92,
             transparent: true,
             opacity: 0.15,
-            thickness: 2.2,
+            thickness: thickness,
             ior: 1.58,
             emissive: 0xffb300,
             emissiveIntensity: 0.08,
@@ -484,7 +494,7 @@ export const createAmberLampshade = (isRefractionMode = false) => {
             transmission: 0.8,
             transparent: true,
             opacity: 0.25,
-            thickness: 1.8,
+            thickness: thickness,
             ior: 1.55,
             emissive: 0xffb300,
             emissiveIntensity: 0.1,
@@ -499,7 +509,10 @@ export const createAmberLampshade = (isRefractionMode = false) => {
     }
 };
 
-export const createSmokedLampshade = (isRefractionMode = false) => {
+export const createSmokedLampshade = (isRefractionMode = false, customThickness = null) => {
+    const baseThickness = isRefractionMode ? 2.8 : 2.0;
+    const thickness = customThickness || baseThickness;
+
     if (isRefractionMode) {
         return new THREE.MeshPhysicalMaterial({
             color: 0x795548,
@@ -508,7 +521,7 @@ export const createSmokedLampshade = (isRefractionMode = false) => {
             transmission: 0.85,
             transparent: true,
             opacity: 0.25,
-            thickness: 2.8,
+            thickness: thickness,
             ior: 1.56,
             emissive: 0x3e2723,
             emissiveIntensity: 0.02,
@@ -528,7 +541,7 @@ export const createSmokedLampshade = (isRefractionMode = false) => {
             transmission: 0.7,
             transparent: true,
             opacity: 0.4,
-            thickness: 2.0,
+            thickness: thickness,
             ior: 1.52,
             emissive: 0x3e2723,
             emissiveIntensity: 0.05,

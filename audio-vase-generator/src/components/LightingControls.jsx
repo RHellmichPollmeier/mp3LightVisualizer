@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lightbulb, Sun, Zap } from 'lucide-react';
+import { Lightbulb, Sun, Zap, Layers } from 'lucide-react';
 
 const LightingControls = ({ lightingSettings, onLightingChange }) => {
     const handleChange = (key, value) => {
@@ -50,6 +50,67 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                                 onChange={(e) => handleChange('colorTemperature', Number(e.target.value))}
                                 className="w-full"
                             />
+                        </div>
+                    </div>
+                </div>
+
+                {/* NEUE MATERIALSTÄRKE SEKTION */}
+                <div className="border-b border-white/20 pb-4">
+                    <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                        <Layers className="w-4 h-4" />
+                        Materialstärke
+                    </h3>
+
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-white text-sm mb-2">
+                                Glasstärke: {lightingSettings.materialThickness}mm
+                            </label>
+                            <input
+                                type="range"
+                                min="0.5"
+                                max="8.0"
+                                step="0.1"
+                                value={lightingSettings.materialThickness}
+                                onChange={(e) => handleChange('materialThickness', Number(e.target.value))}
+                                className="w-full"
+                            />
+                        </div>
+
+                        {/* Visueller Indikator für Materialstärke */}
+                        <div className="grid grid-cols-4 gap-2 text-xs">
+                            <div className={`p-2 rounded text-center transition-all ${lightingSettings.materialThickness <= 1.5
+                                    ? 'bg-blue-600/50 text-white border border-blue-400'
+                                    : 'bg-blue-600/20 text-blue-300'
+                                }`}>
+                                Dünn<br />≤1.5mm
+                            </div>
+                            <div className={`p-2 rounded text-center transition-all ${lightingSettings.materialThickness > 1.5 && lightingSettings.materialThickness <= 3.0
+                                    ? 'bg-green-600/50 text-white border border-green-400'
+                                    : 'bg-green-600/20 text-green-300'
+                                }`}>
+                                Normal<br />1.5-3mm
+                            </div>
+                            <div className={`p-2 rounded text-center transition-all ${lightingSettings.materialThickness > 3.0 && lightingSettings.materialThickness <= 5.0
+                                    ? 'bg-orange-600/50 text-white border border-orange-400'
+                                    : 'bg-orange-600/20 text-orange-300'
+                                }`}>
+                                Dick<br />3-5mm
+                            </div>
+                            <div className={`p-2 rounded text-center transition-all ${lightingSettings.materialThickness > 5.0
+                                    ? 'bg-red-600/50 text-white border border-red-400'
+                                    : 'bg-red-600/20 text-red-300'
+                                }`}>
+                                Sehr Dick<br />{`>`}5mm
+                            </div>
+                        </div>
+
+                        <div className="text-xs text-blue-200 bg-blue-900/20 rounded p-2">
+                            💡 <strong>Materialstärke-Effekte:</strong><br />
+                            • <strong>Dünn (0.5-1.5mm):</strong> Klare Durchsicht, wenig Farbverschiebung<br />
+                            • <strong>Normal (1.5-3mm):</strong> Ausgewogene Brechung und Transparenz<br />
+                            • <strong>Dick (3-5mm):</strong> Starke Brechung, intensivere Farben<br />
+                            • <strong>Sehr Dick ({`>`}5mm):</strong> Dramatische Lichteffekte, Prisma-ähnlich
                         </div>
                     </div>
                 </div>
@@ -162,7 +223,7 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                 </div>
             </div>
 
-            {/* Voreinstellungen */}
+            {/* Voreinstellungen - ERWEITERT mit Materialstärke */}
             <div className="mt-6 pt-4 border-t border-white/20">
                 <h3 className="text-white font-medium mb-3">Beleuchtungs-Presets</h3>
                 <div className="grid grid-cols-2 gap-2">
@@ -175,7 +236,8 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                             transmission: 0.95,
                             ambientIntensity: 0.15,
                             animationSpeed: 1.0,
-                            shadowIntensity: 0.7
+                            shadowIntensity: 0.7,
+                            materialThickness: 1.8  // Warmes, mittleres Glas
                         })}
                         className="p-2 bg-orange-600/30 hover:bg-orange-600/50 rounded text-white text-sm transition-colors"
                     >
@@ -190,7 +252,8 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                             transmission: 0.96,
                             ambientIntensity: 0.1,
                             animationSpeed: 0.5,
-                            shadowIntensity: 0.9
+                            shadowIntensity: 0.9,
+                            materialThickness: 1.2  // Dünnes, klares Glas
                         })}
                         className="p-2 bg-blue-600/30 hover:bg-blue-600/50 rounded text-white text-sm transition-colors"
                     >
@@ -205,7 +268,8 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                             transmission: 0.9,
                             ambientIntensity: 0.05,
                             animationSpeed: 1.5,
-                            shadowIntensity: 1.0
+                            shadowIntensity: 1.0,
+                            materialThickness: 4.5  // Dickes, dramatisches Glas
                         })}
                         className="p-2 bg-purple-600/30 hover:bg-purple-600/50 rounded text-white text-sm transition-colors"
                     >
@@ -220,11 +284,43 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                             transmission: 0.93,
                             ambientIntensity: 0.25,
                             animationSpeed: 0.3,
-                            shadowIntensity: 0.5
+                            shadowIntensity: 0.5,
+                            materialThickness: 2.2  // Sanftes, ausgewogenes Glas
                         })}
                         className="p-2 bg-green-600/30 hover:bg-green-600/50 rounded text-white text-sm transition-colors"
                     >
                         🌿 Sanft
+                    </button>
+                </div>
+            </div>
+
+            {/* NEUE MATERIALSTÄRKE SCHNELLWAHL */}
+            <div className="mt-4 pt-4 border-t border-white/20">
+                <h3 className="text-white font-medium mb-3">Materialstärke Schnellwahl</h3>
+                <div className="grid grid-cols-4 gap-2">
+                    <button
+                        onClick={() => handleChange('materialThickness', 0.8)}
+                        className="p-2 bg-blue-600/30 hover:bg-blue-600/50 rounded text-white text-xs transition-colors"
+                    >
+                        🪟 Hauchzart<br />0.8mm
+                    </button>
+                    <button
+                        onClick={() => handleChange('materialThickness', 1.8)}
+                        className="p-2 bg-green-600/30 hover:bg-green-600/50 rounded text-white text-xs transition-colors"
+                    >
+                        🥃 Klassisch<br />1.8mm
+                    </button>
+                    <button
+                        onClick={() => handleChange('materialThickness', 3.5)}
+                        className="p-2 bg-orange-600/30 hover:bg-orange-600/50 rounded text-white text-xs transition-colors"
+                    >
+                        🧊 Robust<br />3.5mm
+                    </button>
+                    <button
+                        onClick={() => handleChange('materialThickness', 6.0)}
+                        className="p-2 bg-red-600/30 hover:bg-red-600/50 rounded text-white text-xs transition-colors"
+                    >
+                        💎 Kristall<br />6.0mm
                     </button>
                 </div>
             </div>

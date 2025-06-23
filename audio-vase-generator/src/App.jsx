@@ -46,7 +46,8 @@ const App = () => {
     transmission: 0.95,
     ambientIntensity: 0.15,
     animationSpeed: 1.0,
-    shadowIntensity: 0.7
+    shadowIntensity: 0.7,
+    materialThickness: 1.5  // NEUE MATERIALSTÄRKE
   });
 
   const perlinNoise = useRef(new PerlinNoise());
@@ -56,22 +57,23 @@ const App = () => {
     let baseMaterial;
     switch (lampshadeStyle) {
       case 'cool':
-        baseMaterial = createCoolLampshade(isRefractionMode);
+        baseMaterial = createCoolLampshade(isRefractionMode, lightingSettings.materialThickness);
         break;
       case 'amber':
-        baseMaterial = createAmberLampshade(isRefractionMode);
+        baseMaterial = createAmberLampshade(isRefractionMode, lightingSettings.materialThickness);
         break;
       case 'smoked':
-        baseMaterial = createSmokedLampshade(isRefractionMode);
+        baseMaterial = createSmokedLampshade(isRefractionMode, lightingSettings.materialThickness);
         break;
       default:
-        baseMaterial = createWarmLampshade(isRefractionMode);
+        baseMaterial = createWarmLampshade(isRefractionMode, lightingSettings.materialThickness);
     }
 
     // Beleuchtungseinstellungen anwenden
     baseMaterial.envMapIntensity = lightingSettings.envMapIntensity;
     baseMaterial.ior = lightingSettings.ior;
     baseMaterial.transmission = lightingSettings.transmission;
+    baseMaterial.thickness = lightingSettings.materialThickness; // MATERIALSTÄRKE ANWENDEN
 
     return baseMaterial;
   }, [lampshadeStyle, lightingSettings, isRefractionMode]);
@@ -176,13 +178,14 @@ const App = () => {
 
       {/* Info - Aktualisiert */}
       <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-        <h3 className="text-lg font-semibold text-white mb-3">✨ Dualer Beleuchtungsmodus</h3>
+        <h3 className="text-lg font-semibold text-white mb-3">✨ Erweiterte Lichtbrechung mit Materialstärke</h3>
         <div className="text-blue-200 space-y-2">
           <p>🔆 <strong>Hell-Modus:</strong> Optimale Beleuchtung zum Betrachten und Anpassen der Vasenform</p>
           <p>🌈 <strong>Lichtbrechungs-Modus:</strong> Spektakuläre Lichteffekte mit Bodenbeleuchtung</p>
+          <p>🧱 <strong>Materialstärke:</strong> Von hauchzartem 0.5mm bis zu massiven 8mm Glas</p>
           <p>💎 Realistische Lichtbrechung mit Environment-Mapping und mehreren Lichtquellen</p>
-          <p>🎛️ Vollständige Kontrolle über Brechungsindex, Transmission und Umgebungslicht</p>
-          <p>🎨 4 Materialstile: Warm, Kühl, Bernstein und Rauchglas</p>
+          <p>🎛️ Vollständige Kontrolle über Brechungsindex, Transmission und Glasdicke</p>
+          <p>🎨 4 Materialstile: Warm, Kühl, Bernstein und Rauchglas mit individueller Stärke</p>
           <p>🔄 Echtzeit-Animation der Lichtquellen für lebendige Brechungseffekte</p>
         </div>
       </div>
