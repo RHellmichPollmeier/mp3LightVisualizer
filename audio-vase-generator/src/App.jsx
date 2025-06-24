@@ -22,8 +22,8 @@ const App = () => {
   const [vaseGeometry, setVaseGeometry] = useState(null);
   const [lampshadeStyle, setLampshadeStyle] = useState('warm');
 
-  // TAB-SYSTEM
-  const [activeTab, setActiveTab] = useState('upload'); // 'upload' oder 'settings'
+  // TAB-SYSTEM - ERWEITERT auf 3 Tabs
+  const [activeTab, setActiveTab] = useState('upload'); // 'upload', 'lighting', 'vase'
 
   // NEUER STATE: STL-Sockel
   const [baseSTL, setBaseSTL] = useState(null);
@@ -122,33 +122,44 @@ const App = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* TAB-SYSTEM für Kontrollen */}
-        <div className="lg:col-span-1">
-          {/* Tab Navigation */}
+      {/* NEUES 30/70 LAYOUT */}
+      <div className="grid grid-cols-10 gap-6">
+        {/* SETTINGS LINKS - 30% */}
+        <div className="col-span-3">
+          {/* Tab Navigation - 3 Tabs */}
           <div className="flex bg-white/10 rounded-xl p-1 mb-4 border border-white/20">
             <button
               onClick={() => setActiveTab('upload')}
-              className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${activeTab === 'upload'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'text-blue-200 hover:text-white hover:bg-white/10'
+              className={`flex-1 py-2 px-3 rounded-lg font-medium transition-all text-sm ${activeTab === 'upload'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'text-blue-200 hover:text-white hover:bg-white/10'
                 }`}
             >
-              📁 Upload & Setup
+              📁 Upload
             </button>
             <button
-              onClick={() => setActiveTab('settings')}
-              className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${activeTab === 'settings'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'text-blue-200 hover:text-white hover:bg-white/10'
+              onClick={() => setActiveTab('lighting')}
+              className={`flex-1 py-2 px-3 rounded-lg font-medium transition-all text-sm ${activeTab === 'lighting'
+                ? 'bg-purple-600 text-white shadow-lg'
+                : 'text-blue-200 hover:text-white hover:bg-white/10'
                 }`}
             >
-              ⚙️ Einstellungen
+              💡 Licht
+            </button>
+            <button
+              onClick={() => setActiveTab('vase')}
+              className={`flex-1 py-2 px-3 rounded-lg font-medium transition-all text-sm ${activeTab === 'vase'
+                ? 'bg-green-600 text-white shadow-lg'
+                : 'text-blue-200 hover:text-white hover:bg-white/10'
+                }`}
+            >
+              🏺 Vase
             </button>
           </div>
 
           {/* Tab Content mit Scrollbar */}
-          <div className="max-h-[calc(100vh-16rem)] overflow-y-auto pr-2 space-y-6 scrollbar-thin scrollbar-thumb-blue-600 scrollbar-track-blue-300/20">
+          <div className="max-h-[calc(100vh-12rem)] overflow-y-auto pr-2 space-y-6 scrollbar-thin scrollbar-thumb-blue-600 scrollbar-track-blue-300/20">
+            {/* UPLOAD TAB */}
             {activeTab === 'upload' && (
               <>
                 <AudioUpload
@@ -168,9 +179,10 @@ const App = () => {
               </>
             )}
 
-            {activeTab === 'settings' && (
+            {/* LIGHTING TAB */}
+            {activeTab === 'lighting' && (
               <>
-                {/* NEUER LICHTMODUS TOGGLE */}
+                {/* LICHTMODUS TOGGLE */}
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
                   <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                     💡 Lichtmodus
@@ -223,7 +235,12 @@ const App = () => {
                   lightingSettings={lightingSettings}
                   onLightingChange={setLightingSettings}
                 />
+              </>
+            )}
 
+            {/* VASE TAB */}
+            {activeTab === 'vase' && (
+              <>
                 <VaseSettings
                   settings={settings}
                   onChange={setSettings}
@@ -233,8 +250,8 @@ const App = () => {
           </div>
         </div>
 
-        {/* 3D Vorschau */}
-        <div className="lg:col-span-2">
+        {/* 3D VORSCHAU RECHTS - 70% */}
+        <div className="col-span-7">
           <VasePreview
             geometry={vaseGeometry}
             material={getMaterial()}
@@ -265,6 +282,8 @@ const App = () => {
           <p>🎨 4 Materialstile + 4 Oberflächenmuster + STL-Sockel für einzigartige Designs</p>
           <p>🔄 Echtzeit-Animation aller Lichteffekte für lebendige Brechungseffekte</p>
           <p>🌊 Physikalisch korrekte Caustics simulieren echte Glaslichtbrechung</p>
+          <p>📱 <strong>Neues Layout:</strong> 30% Settings-Panel, 70% 3D-Vorschau für optimale Bedienung</p>
+          <p>🔧 <strong>Getrennte Tabs:</strong> Upload, Licht-Einstellungen und Vase-Einstellungen für bessere Organisation</p>
         </div>
       </div>
     </Layout>
