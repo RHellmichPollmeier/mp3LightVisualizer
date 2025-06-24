@@ -7,9 +7,9 @@ const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = 
 
     useEffect(() => {
         if (geometry && material) {
-            updateMesh(geometry, material, basePlacementPosition);
+            updateMesh(geometry, material, basePlacementPosition, lightingSettings);
         }
-    }, [geometry, material, updateMesh, basePlacementPosition]);
+    }, [geometry, material, updateMesh, basePlacementPosition, lightingSettings]);
 
     useEffect(() => {
         if (baseGeometry && vaseSettings) {
@@ -63,6 +63,9 @@ const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = 
                         <div className="text-xs text-indigo-300 bg-indigo-900/20 rounded p-2">
                             🌀 <strong>Wellenmuster:</strong> Spiralförmige Oberflächenrillen verstärken die Lichtbrechung
                         </div>
+                        <div className="text-xs text-violet-300 bg-violet-900/20 rounded p-2">
+                            🎯 <strong>Y-Position:</strong> Innenlicht bei {Math.round((lightingSettings.innerLightY || 0.33) * 100)}% der Vasenhöhe für individuelle Stimmung
+                        </div>
                         {baseGeometry && (
                             <div className="text-xs text-yellow-300 bg-yellow-900/20 rounded p-2">
                                 🏺 <strong>STL-Sockel:</strong> Automatisch angepasst - Vase sitzt stabil auf dem Sockel
@@ -84,6 +87,9 @@ const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = 
                         </div>
                         <div className="text-xs text-purple-300 bg-purple-900/20 rounded p-2">
                             🌀 <strong>Oberflächenstrukturen:</strong> 4 verschiedene Wellenmuster für einzigartige Designs
+                        </div>
+                        <div className="text-xs text-violet-300 bg-violet-900/20 rounded p-2">
+                            🎯 <strong>Y-Position-Vorschau:</strong> Sichtbare Effekte der Innenlicht-Position bei {Math.round((lightingSettings.innerLightY || 0.33) * 100)}%
                         </div>
                         {baseGeometry && (
                             <div className="text-xs text-orange-300 bg-orange-900/20 rounded p-2">

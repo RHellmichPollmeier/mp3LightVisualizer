@@ -22,6 +22,9 @@ const App = () => {
   const [vaseGeometry, setVaseGeometry] = useState(null);
   const [lampshadeStyle, setLampshadeStyle] = useState('warm');
 
+  // TAB-SYSTEM
+  const [activeTab, setActiveTab] = useState('upload'); // 'upload' oder 'settings'
+
   // NEUER STATE: STL-Sockel
   const [baseSTL, setBaseSTL] = useState(null);
   const [baseGeometry, setBaseGeometry] = useState(null);
@@ -66,7 +69,9 @@ const App = () => {
     // NEUE VOLUMETRISCHE PARAMETER
     volumetricIntensity: 0.4,
     causticStrength: 0.3,
-    particleDensity: 0.8
+    particleDensity: 0.8,
+    // Y-POSITION der Innenbeleuchtung
+    innerLightY: 0.33  // 0 = Boden, 1 = Top, 0.33 = 1/3 von unten
   });
 
   const perlinNoise = useRef(new PerlinNoise());
@@ -106,91 +111,125 @@ const App = () => {
 
   return (
     <Layout>
+      {/* Export Controls ganz oben */}
+      <div className="mb-6">
+        <ExportControls
+          audioData={audioData}
+          geometry={vaseGeometry}
+          baseGeometry={baseGeometry}
+          vaseSettings={settings}
+          onGenerate={generateVase}
+        />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Kontrollen - Scrollbar */}
+        {/* TAB-SYSTEM für Kontrollen */}
         <div className="lg:col-span-1">
-          <div className="max-h-[calc(100vh-12rem)] overflow-y-auto pr-2 space-y-6 scrollbar-thin scrollbar-thumb-blue-600 scrollbar-track-blue-300/20">
-            <AudioUpload
-              audioFile={audioFile}
-              isAnalyzing={isAnalyzing}
-              error={error}
-              onFileUpload={analyzeFile}
-            />
+          {/* Tab Navigation */}
+          <div className="flex bg-white/10 rounded-xl p-1 mb-4 border border-white/20">
+            <button
+              onClick={() => setActiveTab('upload')}
+              className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${activeTab === 'upload'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'text-blue-200 hover:text-white hover:bg-white/10'
+                }`}
+            >
+              📁 Upload & Setup
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${activeTab === 'settings'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'text-blue-200 hover:text-white hover:bg-white/10'
+                }`}
+            >
+              ⚙️ Einstellungen
+            </button>
+          </div>
 
-            <BaseUpload
-              baseSTL={baseSTL}
-              baseGeometry={baseGeometry}
-              onSTLUpload={setBaseSTL}
-              onGeometryLoaded={setBaseGeometry}
-              onPlacementChange={setBasePlacementPosition}
-            />
+          {/* Tab Content mit Scrollbar */}
+          <div className="max-h-[calc(100vh-16rem)] overflow-y-auto pr-2 space-y-6 scrollbar-thin scrollbar-thumb-blue-600 scrollbar-track-blue-300/20">
+            {activeTab === 'upload' && (
+              <>
+                <AudioUpload
+                  audioFile={audioFile}
+                  isAnalyzing={isAnalyzing}
+                  error={error}
+                  onFileUpload={analyzeFile}
+                />
 
-            {/* NEUER LICHTMODUS TOGGLE */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                💡 Lichtmodus
-              </h2>
+                <BaseUpload
+                  baseSTL={baseSTL}
+                  baseGeometry={baseGeometry}
+                  onSTLUpload={setBaseSTL}
+                  onGeometryLoaded={setBaseGeometry}
+                  onPlacementChange={setBasePlacementPosition}
+                />
+              </>
+            )}
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{isRefractionMode ? '🌈' : '🔆'}</span>
-                    <div>
-                      <div className="text-white font-medium">
-                        {isRefractionMode ? 'Lichtbrechungs-Modus' : 'Hell-Modus'}
+            {activeTab === 'settings' && (
+              <>
+                {/* NEUER LICHTMODUS TOGGLE */}
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+                  <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                    💡 Lichtmodus
+                  </h2>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{isRefractionMode ? '🌈' : '🔆'}</span>
+                        <div>
+                          <div className="text-white font-medium">
+                            {isRefractionMode ? 'Lichtbrechungs-Modus' : 'Hell-Modus'}
+                          </div>
+                          <div className="text-blue-200 text-sm">
+                            {isRefractionMode
+                              ? 'Spektakuläre Lichtbrechungseffekte'
+                              : 'Optimale Sicht auf die Vase'
+                            }
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-blue-200 text-sm">
-                        {isRefractionMode
-                          ? 'Spektakuläre Lichtbrechungseffekte'
-                          : 'Optimale Sicht auf die Vase'
-                        }
-                      </div>
+
+                      <button
+                        onClick={() => setIsRefractionMode(!isRefractionMode)}
+                        className={`relative w-16 h-8 rounded-full transition-all duration-300 ${isRefractionMode
+                          ? 'bg-purple-600 shadow-lg shadow-purple-500/50'
+                          : 'bg-yellow-500 shadow-lg shadow-yellow-500/50'
+                          }`}
+                      >
+                        <div
+                          className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform duration-300 ${isRefractionMode ? 'transform translate-x-8' : ''
+                            }`}
+                        />
+                      </button>
+                    </div>
+
+                    <div className="text-xs text-blue-200 space-y-1">
+                      <p><strong>Hell-Modus:</strong> Normale Beleuchtung, perfekt zum Betrachten der Vasenform</p>
+                      <p><strong>Lichtbrechungs-Modus:</strong> Dunkle Szene mit volumetrischen Lichteffekten</p>
                     </div>
                   </div>
-
-                  <button
-                    onClick={() => setIsRefractionMode(!isRefractionMode)}
-                    className={`relative w-16 h-8 rounded-full transition-all duration-300 ${isRefractionMode
-                      ? 'bg-purple-600 shadow-lg shadow-purple-500/50'
-                      : 'bg-yellow-500 shadow-lg shadow-yellow-500/50'
-                      }`}
-                  >
-                    <div
-                      className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform duration-300 ${isRefractionMode ? 'transform translate-x-8' : ''
-                        }`}
-                    />
-                  </button>
                 </div>
 
-                <div className="text-xs text-blue-200 space-y-1">
-                  <p><strong>Hell-Modus:</strong> Normale Beleuchtung, perfekt zum Betrachten der Vasenform</p>
-                  <p><strong>Lichtbrechungs-Modus:</strong> Dunkle Szene mit volumetrischen Lichteffekten</p>
-                </div>
-              </div>
-            </div>
+                <LampshadeStyleSelector
+                  selectedStyle={lampshadeStyle}
+                  onStyleChange={setLampshadeStyle}
+                />
 
-            <LampshadeStyleSelector
-              selectedStyle={lampshadeStyle}
-              onStyleChange={setLampshadeStyle}
-            />
+                <LightingControls
+                  lightingSettings={lightingSettings}
+                  onLightingChange={setLightingSettings}
+                />
 
-            <LightingControls
-              lightingSettings={lightingSettings}
-              onLightingChange={setLightingSettings}
-            />
-
-            <VaseSettings
-              settings={settings}
-              onChange={setSettings}
-            />
-
-            <ExportControls
-              audioData={audioData}
-              geometry={vaseGeometry}
-              baseGeometry={baseGeometry}
-              vaseSettings={settings}
-              onGenerate={generateVase}
-            />
+                <VaseSettings
+                  settings={settings}
+                  onChange={setSettings}
+                />
+              </>
+            )}
           </div>
         </div>
 
@@ -220,6 +259,7 @@ const App = () => {
           <p>🏺 <strong>STL-Sockel:</strong> Perfekt passender Sockel - Vase sitzt exakt auf der Oberseite</p>
           <p>🌀 <strong>Spiralwellen:</strong> Elegante gedrehte Rillen wie in handwerklichen Glasvasen</p>
           <p>🧱 <strong>Materialstärke:</strong> Von hauchzartem 0.5mm bis zu massiven 8mm Glas</p>
+          <p>🎯 <strong>Y-Position:</strong> Präzise Kontrolle der Innenlicht-Position von Boden bis Spitze</p>
           <p>💎 Realistische Lichtbrechung mit Environment-Mapping und mehreren Lichtquellen</p>
           <p>🎛️ Vollständige Kontrolle über Brechungsindex, Transmission und Glasdicke</p>
           <p>🎨 4 Materialstile + 4 Oberflächenmuster + STL-Sockel für einzigartige Designs</p>

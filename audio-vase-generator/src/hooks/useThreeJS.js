@@ -391,11 +391,11 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
                     // Sanftes Pulsieren der Hauptlampe
                     mainInnerLight.intensity = 18.0 + Math.sin(time * 1.5) * 4.0;
 
-                    // Die Position bleibt relativ zur Gruppe (ist schon bei 1/3 der Höhe)
+                    // Die Position bleibt relativ zur Gruppe (basiert auf innerLightY Parameter)
                     // Kleine Schwankung für lebendigen Effekt
                     const vaseHeight = 20;
-                    const oneThirdHeight = -vaseHeight / 2 + (vaseHeight / 3);
-                    mainInnerLight.position.y = oneThirdHeight + Math.sin(time * 2) * 0.2;
+                    const calculatedHeight = -vaseHeight / 2 + (vaseHeight * 0.33); // Default wenn nicht verfügbar
+                    mainInnerLight.position.y = calculatedHeight + Math.sin(time * 2) * 0.2;
                 }
 
                 // ===== INNERE RING-LICHTER Animation (Index 1-10) =====
@@ -416,8 +416,8 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
                         // Vertikale Schwankung für diagonale Lichter (Index 7-10)
                         if (i >= 7 && i <= 10) {
                             const vaseHeight = 20;
-                            const oneThirdHeight = -vaseHeight / 2 + (vaseHeight / 3);
-                            const baseY = i % 2 === 0 ? oneThirdHeight + 1 : oneThirdHeight - 1;
+                            const calculatedHeight = -vaseHeight / 2 + (vaseHeight * 0.33); // Default wenn nicht verfügbar
+                            const baseY = i % 2 === 0 ? calculatedHeight + 1 : calculatedHeight - 1;
                             light.position.y = baseY + Math.sin(time * 1.8 + i) * 0.3;
                         }
                     }
@@ -455,6 +455,13 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
                     // Leichte Bewegung des Spot Lights
                     topSpot.position.x = Math.sin(time * 0.3) * 2;
                     topSpot.position.z = Math.cos(time * 0.3) * 2;
+
+                    // Target auf berechnete Hauptlicht-Position ausrichten
+                    const vaseHeight = 20;
+                    const calculatedHeight = -vaseHeight / 2 + (vaseHeight * 0.33); // Default wenn nicht verfügbar
+                    if (topSpot.target) {
+                        topSpot.target.position.set(0, calculatedHeight, 0);
+                    }
                 }
             }
 
@@ -550,7 +557,7 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
         };
     }, [canvasRef, isRefractionMode]); // isRefractionMode als Dependency
 
-    const updateMesh = (geometry, material, placementPosition = { x: 0, z: 0 }) => {
+    const updateMesh = (geometry, material, placementPosition = { x: 0, z: 0 }, lightingSettings = {}) => {
         if (!sceneRef.current) return;
 
         // Altes Mesh entfernen
@@ -595,14 +602,14 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
             // Lampenschirm-Beleuchtung nur im Lichtbrechungs-Modus hinzufügen
             if (lightModeRef.current) {
                 const vaseHeight = 20;
-                const innerLightGroup = createInnerLight(vaseHeight);
+                const innerLightGroup = createInnerLight(vaseHeight, lightingSettings.innerLightY || 0.33);
                 innerLightGroup.position.set(vaseXPosition, vaseYPosition, vaseZPosition); // Lichter auf gleicher Position wie Vase
                 sceneRef.current.add(innerLightGroup);
                 innerLightRef.current = innerLightGroup;
 
                 // Debug-Info
                 console.log('🏮 Lampenschirm-Setup:');
-                console.log(`💡 Hauptlicht INNEN bei y = ${(-20 / 2) + (20 / 3)} (relativ zur Vase)`);
+                console.log(`💡 Hauptlicht INNEN bei y = ${((-20 / 2) + (20 * (lightingSettings.innerLightY || 0.33))).toFixed(2)} (${((lightingSettings.innerLightY || 0.33) * 100).toFixed(0)}% der Höhe)`);
                 console.log(`🎯 Vase-Position: x=${vaseXPosition}, y=${vaseYPosition}, z=${vaseZPosition}`);
                 console.log(`⚡ Lichter-Gruppe wird mit Vase mitbewegt`);
                 console.log(`🌟 Erwarteter Effekt: Licht scheint von INNEN durch Glaswände`);

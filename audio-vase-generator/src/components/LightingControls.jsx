@@ -115,6 +115,91 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                     </div>
                 </div>
 
+                {/* NEUE LICHT-POSITION SEKTION */}
+                <div className="border-b border-white/20 pb-4">
+                    <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                        🎯 Innenlicht Position
+                        <span className="text-xs bg-purple-600/30 px-2 py-1 rounded">
+                            Nur Lichtbrechungs-Modus
+                        </span>
+                    </h3>
+
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-white text-sm mb-2">
+                                Y-Position: {Math.round(lightingSettings.innerLightY * 100)}% der Vasenhöhe
+                            </label>
+                            <input
+                                type="range"
+                                min="0.1"
+                                max="0.9"
+                                step="0.05"
+                                value={lightingSettings.innerLightY || 0.33}
+                                onChange={(e) => handleChange('innerLightY', Number(e.target.value))}
+                                className="w-full"
+                            />
+                        </div>
+
+                        {/* Visueller Indikator für Y-Position */}
+                        <div className="grid grid-cols-4 gap-2 text-xs">
+                            <div className={`p-2 rounded text-center transition-all ${lightingSettings.innerLightY <= 0.25
+                                ? 'bg-orange-600/50 text-white border border-orange-400'
+                                : 'bg-orange-600/20 text-orange-300'
+                                }`}>
+                                Unten<br />0-25%
+                            </div>
+                            <div className={`p-2 rounded text-center transition-all ${lightingSettings.innerLightY > 0.25 && lightingSettings.innerLightY <= 0.5
+                                ? 'bg-green-600/50 text-white border border-green-400'
+                                : 'bg-green-600/20 text-green-300'
+                                }`}>
+                                Mitte-Unten<br />25-50%
+                            </div>
+                            <div className={`p-2 rounded text-center transition-all ${lightingSettings.innerLightY > 0.5 && lightingSettings.innerLightY <= 0.75
+                                ? 'bg-blue-600/50 text-white border border-blue-400'
+                                : 'bg-blue-600/20 text-blue-300'
+                                }`}>
+                                Mitte-Oben<br />50-75%
+                            </div>
+                            <div className={`p-2 rounded text-center transition-all ${lightingSettings.innerLightY > 0.75
+                                ? 'bg-purple-600/50 text-white border border-purple-400'
+                                : 'bg-purple-600/20 text-purple-300'
+                                }`}>
+                                Oben<br />75-90%
+                            </div>
+                        </div>
+
+                        {/* Preset-Buttons für Y-Position */}
+                        <div className="grid grid-cols-3 gap-2">
+                            <button
+                                onClick={() => handleChange('innerLightY', 0.15)}
+                                className="p-2 bg-orange-600/30 hover:bg-orange-600/50 rounded text-white text-xs transition-colors"
+                            >
+                                🔥 Boden<br />15%
+                            </button>
+                            <button
+                                onClick={() => handleChange('innerLightY', 0.33)}
+                                className="p-2 bg-green-600/30 hover:bg-green-600/50 rounded text-white text-xs transition-colors"
+                            >
+                                💡 1/3<br />33%
+                            </button>
+                            <button
+                                onClick={() => handleChange('innerLightY', 0.66)}
+                                className="p-2 bg-blue-600/30 hover:bg-blue-600/50 rounded text-white text-xs transition-colors"
+                            >
+                                ⭐ 2/3<br />66%
+                            </button>
+                        </div>
+
+                        <div className="text-xs text-purple-200 bg-purple-900/20 rounded p-2">
+                            🎯 <strong>Lichtposition-Effekte:</strong><br />
+                            • <strong>Unten (0-25%):</strong> Warmes Bodenlicht, gemütlicher Lampenschirm<br />
+                            • <strong>Mitte (25-75%):</strong> Ausgewogene Durchleuchtung, klassischer Look<br />
+                            • <strong>Oben (75-90%):</strong> Dramatisches Licht von oben, moderne Ästhetik<br />
+                            <strong>💡 Tipp:</strong> Probiere verschiedene Positionen für unterschiedliche Stimmungen
+                        </div>
+                    </div>
+                </div>
+
                 {/* NEUE VOLUMETRISCHE EFFEKTE SEKTION - Nur im Lichtbrechungs-Modus */}
                 <div className="border-b border-white/20 pb-4">
                     <h3 className="text-white font-medium mb-3 flex items-center gap-2">
@@ -330,7 +415,8 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                             materialThickness: 1.8,  // Warmes, mittleres Glas
                             volumetricIntensity: 0.4,
                             causticStrength: 0.3,
-                            particleDensity: 0.8
+                            particleDensity: 0.8,
+                            innerLightY: 0.33  // Standard 1/3 Position
                         })}
                         className="p-2 bg-orange-600/30 hover:bg-orange-600/50 rounded text-white text-sm transition-colors"
                     >
@@ -349,7 +435,8 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                             materialThickness: 1.2,  // Dünnes, klares Glas
                             volumetricIntensity: 0.5,
                             causticStrength: 0.4,
-                            particleDensity: 0.6
+                            particleDensity: 0.6,
+                            innerLightY: 0.25  // Tiefere Position für kühlen Look
                         })}
                         className="p-2 bg-blue-600/30 hover:bg-blue-600/50 rounded text-white text-sm transition-colors"
                     >
@@ -368,7 +455,8 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                             materialThickness: 4.5,  // Dickes, dramatisches Glas
                             volumetricIntensity: 0.7,
                             causticStrength: 0.6,
-                            particleDensity: 1.2
+                            particleDensity: 1.2,
+                            innerLightY: 0.7  // Hohe Position für Drama
                         })}
                         className="p-2 bg-purple-600/30 hover:bg-purple-600/50 rounded text-white text-sm transition-colors"
                     >
@@ -387,7 +475,8 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                             materialThickness: 2.2,  // Sanftes, ausgewogenes Glas
                             volumetricIntensity: 0.2,
                             causticStrength: 0.2,
-                            particleDensity: 0.4
+                            particleDensity: 0.4,
+                            innerLightY: 0.4  // Mittlere Position für sanften Look
                         })}
                         className="p-2 bg-green-600/30 hover:bg-green-600/50 rounded text-white text-sm transition-colors"
                     >
