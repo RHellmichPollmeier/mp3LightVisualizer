@@ -1,5 +1,374 @@
 import * as THREE from 'three';
 
+// ============================================
+// 3D-DRUCK OPTIMIERUNG - "MAKE PRINTABLE"
+// ============================================
+
+export const makePrintable = (geometry, options = {}) => {
+    const {
+        maxOverhang = 45,           // Max Überhang-Winkel in Grad
+        minWallThickness = 0.4,     // Min Wandstärke in mm (wird zu cm konvertiert)
+        smoothingIterations = 3,     // Anzahl Glättungs-Durchgänge
+        preserveAudioDetail = 0.7,   // 0-1: Wie viel Audio-Detail erhalten bleibt
+        spikeThreshold = 2.0,        // Schwellwert für Spike-Detection
+        printDirection = 'Z'         // Druck-Richtung (Z = vertikal)
+    } = options;
+
+    console.log('🔧 Make Printable gestartet mit Parametern:');
+    console.log(`   Max Überhang: ${maxOverhang}°`);
+    console.log(`   Min Wandstärke: ${minWallThickness}mm`);
+    console.log(`   Audio-Erhaltung: ${(preserveAudioDetail * 100).toFixed(0)}%`);
+    console.log(`   Glättungs-Iterationen: ${smoothingIterations}`);
+
+    const positions = geometry.attributes.position.array;
+    const indices = geometry.index ? geometry.index.array : null;
+
+    if (!indices) {
+        console.error('❌ Geometrie benötigt Indices für Printability-Analyse');
+        return geometry;
+    }
+
+    // ===== SCHRITT 1: PROBLEMBEREICHE ANALYSIEREN =====
+    const problemAreas = analyzePrintability(positions, indices, maxOverhang, spikeThreshold);
+
+    console.log(`🔍 Printability-Analyse abgeschlossen:`);
+    console.log(`   Überhang-Probleme: ${problemAreas.overhangs.length}`);
+    console.log(`   Spike-Probleme: ${problemAreas.spikes.length}`);
+    console.log(`   Dünne Bereiche: ${problemAreas.thinAreas.length}`);
+
+    // ===== SCHRITT 2: AUDIO-ERHALTENDE GLÄTTUNG =====
+    const smoothedPositions = audioPreservingSmoothing(
+        positions,
+        indices,
+        problemAreas,
+        smoothingIterations,
+        preserveAudioDetail
+    );
+
+    // ===== SCHRITT 3: ÜBERHANG-KORREKTUR =====
+    const overhangCorrectedPositions = correctOverhangs(
+        smoothedPositions,
+        indices,
+        maxOverhang,
+        printDirection
+    );
+
+    // ===== SCHRITT 4: NEUE GEOMETRIE ERSTELLEN =====
+    const printableGeometry = geometry.clone();
+    printableGeometry.setAttribute('position', new THREE.Float32BufferAttribute(overhangCorrectedPositions, 3));
+    printableGeometry.computeVertexNormals();
+
+    // ===== SCHRITT 5: VALIDIERUNG =====
+    const finalValidation = analyzePrintability(overhangCorrectedPositions, indices, maxOverhang, spikeThreshold);
+    const improvementScore = calculateImprovementScore(problemAreas, finalValidation);
+
+    console.log('✅ Make Printable abgeschlossen:');
+    console.log(`   Verbesserung: ${(improvementScore * 100).toFixed(1)}%`);
+    console.log(`   Verbleibende Überhänge: ${finalValidation.overhangs.length}`);
+    console.log(`   Verbleibende Spitzen: ${finalValidation.spikes.length}`);
+    console.log(`   🏆 Druckbarkeits-Score: ${calculatePrintabilityScore(finalValidation)}/100`);
+
+    return printableGeometry;
+};
+
+// ===== PRINTABILITY ANALYSE =====
+const analyzePrintability = (positions, indices, maxOverhang, spikeThreshold) => {
+    const vertexCount = positions.length / 3;
+    const problems = {
+        overhangs: [],      // Überhang-Probleme
+        spikes: [],         // Spitze Bereiche
+        thinAreas: [],      // Dünne Bereiche
+        unsupported: []     // Unsupportable Bereiche
+    };
+
+    // Vertex-Normalen berechnen für Überhang-Analyse
+    const normals = calculateVertexNormals(positions, indices);
+
+    // Z-Richtung für Druck-Analyse
+    const upVector = new THREE.Vector3(0, 1, 0); // Y ist oben in unserer Vase
+    const maxOverhangRad = (maxOverhang * Math.PI) / 180;
+
+    for (let i = 0; i < vertexCount; i++) {
+        const normal = normals[i];
+        const vertexPos = new THREE.Vector3(
+            positions[i * 3],
+            positions[i * 3 + 1],
+            positions[i * 3 + 2]
+        );
+
+        // ===== ÜBERHANG-DETECTION =====
+        const angle = normal.angleTo(upVector);
+        const overhangAngle = Math.PI / 2 - angle; // Winkel zur Horizontalen
+
+        if (overhangAngle > maxOverhangRad) {
+            problems.overhangs.push({
+                vertexIndex: i,
+                angle: (overhangAngle * 180) / Math.PI,
+                severity: overhangAngle / (Math.PI / 2), // 0-1
+                position: vertexPos.clone()
+            });
+        }
+
+        // ===== SPIKE-DETECTION =====
+        const neighbors = findVertexNeighbors(i, indices);
+        const curvature = calculateLocalCurvature(i, neighbors, positions);
+
+        if (curvature > spikeThreshold) {
+            problems.spikes.push({
+                vertexIndex: i,
+                curvature: curvature,
+                severity: Math.min(curvature / (spikeThreshold * 3), 1), // 0-1
+                position: vertexPos.clone()
+            });
+        }
+
+        // ===== DÜNNE BEREICHE =====
+        const localThickness = estimateLocalThickness(i, neighbors, positions, normals);
+        if (localThickness < 0.04) { // < 0.4mm in cm
+            problems.thinAreas.push({
+                vertexIndex: i,
+                thickness: localThickness * 10, // cm zu mm
+                severity: (0.04 - localThickness) / 0.04, // 0-1
+                position: vertexPos.clone()
+            });
+        }
+    }
+
+    return problems;
+};
+
+// ===== AUDIO-ERHALTENDE GLÄTTUNG =====
+const audioPreservingSmoothing = (positions, indices, problemAreas, iterations, preservationFactor) => {
+    let smoothedPositions = [...positions];
+    const vertexCount = positions.length / 3;
+
+    // Problem-Vertices identifizieren
+    const problemVertices = new Set();
+    problemAreas.overhangs.forEach(p => problemVertices.add(p.vertexIndex));
+    problemAreas.spikes.forEach(p => problemVertices.add(p.vertexIndex));
+    problemAreas.thinAreas.forEach(p => problemVertices.add(p.vertexIndex));
+
+    for (let iter = 0; iter < iterations; iter++) {
+        const newPositions = [...smoothedPositions];
+
+        for (let i = 0; i < vertexCount; i++) {
+            const neighbors = findVertexNeighbors(i, indices);
+
+            if (neighbors.length === 0) continue;
+
+            // Durchschnitts-Position der Nachbarn
+            let avgX = 0, avgY = 0, avgZ = 0;
+            for (let j = 0; j < neighbors.length; j++) {
+                const nIdx = neighbors[j] * 3;
+                avgX += smoothedPositions[nIdx];
+                avgY += smoothedPositions[nIdx + 1];
+                avgZ += smoothedPositions[nIdx + 2];
+            }
+            avgX /= neighbors.length;
+            avgY /= neighbors.length;
+            avgZ /= neighbors.length;
+
+            const currentIdx = i * 3;
+            const originalX = positions[currentIdx];
+            const originalY = positions[currentIdx + 1];
+            const originalZ = positions[currentIdx + 2];
+
+            // Glättungsstärke basierend auf Problem-Schwere
+            let smoothingStrength = 0.1; // Basis-Glättung
+
+            if (problemVertices.has(i)) {
+                // Stärkere Glättung für Problemstellen
+                const spike = problemAreas.spikes.find(p => p.vertexIndex === i);
+                const overhang = problemAreas.overhangs.find(p => p.vertexIndex === i);
+
+                if (spike) {
+                    smoothingStrength = 0.3 + (spike.severity * 0.4); // 0.3-0.7
+                }
+                if (overhang) {
+                    smoothingStrength = Math.max(smoothingStrength, 0.2 + (overhang.severity * 0.3)); // 0.2-0.5
+                }
+
+                // Audio-Erhaltung reduziert Glättung
+                smoothingStrength *= (1 - preservationFactor * 0.5); // Max 50% Reduktion
+            }
+
+            // Laplacian Smoothing mit Audio-Erhaltung
+            newPositions[currentIdx] = originalX * preservationFactor +
+                (originalX * (1 - smoothingStrength) + avgX * smoothingStrength) * (1 - preservationFactor);
+
+            // Y-Komponente weniger glätten um Vasenhöhe zu erhalten
+            newPositions[currentIdx + 1] = originalY * 0.9 +
+                (originalY * (1 - smoothingStrength * 0.3) + avgY * smoothingStrength * 0.3) * 0.1;
+
+            newPositions[currentIdx + 2] = originalZ * preservationFactor +
+                (originalZ * (1 - smoothingStrength) + avgZ * smoothingStrength) * (1 - preservationFactor);
+        }
+
+        smoothedPositions = newPositions;
+    }
+
+    return smoothedPositions;
+};
+
+// ===== ÜBERHANG-KORREKTUR =====
+const correctOverhangs = (positions, indices, maxOverhang, printDirection) => {
+    const correctedPositions = [...positions];
+    const vertexCount = positions.length / 3;
+    const normals = calculateVertexNormals(positions, indices);
+
+    const upVector = new THREE.Vector3(0, 1, 0);
+    const maxOverhangRad = (maxOverhang * Math.PI) / 180;
+
+    for (let i = 0; i < vertexCount; i++) {
+        const normal = normals[i];
+        const angle = normal.angleTo(upVector);
+        const overhangAngle = Math.PI / 2 - angle;
+
+        if (overhangAngle > maxOverhangRad) {
+            // Korrigiere Überhang durch Radius-Reduktion
+            const currentIdx = i * 3;
+            const centerX = 0, centerZ = 0; // Vase-Zentrum
+
+            const currentRadius = Math.sqrt(
+                Math.pow(correctedPositions[currentIdx] - centerX, 2) +
+                Math.pow(correctedPositions[currentIdx + 2] - centerZ, 2)
+            );
+
+            // Reduziere Radius proportional zur Überhang-Schwere
+            const reductionFactor = 1 - ((overhangAngle - maxOverhangRad) / (Math.PI / 4)) * 0.3;
+            const newRadius = currentRadius * Math.max(reductionFactor, 0.7); // Min 70% des Radius
+
+            if (currentRadius > 0) {
+                const radiusRatio = newRadius / currentRadius;
+                correctedPositions[currentIdx] *= radiusRatio;
+                correctedPositions[currentIdx + 2] *= radiusRatio;
+            }
+        }
+    }
+
+    return correctedPositions;
+};
+
+// ===== HILFSFUNKTIONEN =====
+
+const findVertexNeighbors = (vertexIndex, indices) => {
+    const neighbors = new Set();
+
+    for (let i = 0; i < indices.length; i += 3) {
+        const v1 = indices[i];
+        const v2 = indices[i + 1];
+        const v3 = indices[i + 2];
+
+        if (v1 === vertexIndex) {
+            neighbors.add(v2);
+            neighbors.add(v3);
+        } else if (v2 === vertexIndex) {
+            neighbors.add(v1);
+            neighbors.add(v3);
+        } else if (v3 === vertexIndex) {
+            neighbors.add(v1);
+            neighbors.add(v2);
+        }
+    }
+
+    return Array.from(neighbors);
+};
+
+const calculateLocalCurvature = (vertexIndex, neighbors, positions) => {
+    if (neighbors.length < 3) return 0;
+
+    const centerPos = new THREE.Vector3(
+        positions[vertexIndex * 3],
+        positions[vertexIndex * 3 + 1],
+        positions[vertexIndex * 3 + 2]
+    );
+
+    let totalCurvature = 0;
+    for (let i = 0; i < neighbors.length; i++) {
+        const neighborPos = new THREE.Vector3(
+            positions[neighbors[i] * 3],
+            positions[neighbors[i] * 3 + 1],
+            positions[neighbors[i] * 3 + 2]
+        );
+
+        const distance = centerPos.distanceTo(neighborPos);
+        if (distance > 0) {
+            totalCurvature += 1 / distance; // Hohe Curvature = kurze Distanz zu Nachbarn
+        }
+    }
+
+    return totalCurvature / neighbors.length;
+};
+
+const estimateLocalThickness = (vertexIndex, neighbors, positions, normals) => {
+    // Vereinfachte Schätzung basierend auf Nachbarn-Abständen
+    if (neighbors.length === 0) return 1.0;
+
+    const centerPos = new THREE.Vector3(
+        positions[vertexIndex * 3],
+        positions[vertexIndex * 3 + 1],
+        positions[vertexIndex * 3 + 2]
+    );
+
+    let minDistance = Infinity;
+    for (let i = 0; i < neighbors.length; i++) {
+        const neighborPos = new THREE.Vector3(
+            positions[neighbors[i] * 3],
+            positions[neighbors[i] * 3 + 1],
+            positions[neighbors[i] * 3 + 2]
+        );
+
+        const distance = centerPos.distanceTo(neighborPos);
+        minDistance = Math.min(minDistance, distance);
+    }
+
+    return minDistance * 2; // Geschätzte lokale Dicke
+};
+
+const calculateImprovementScore = (beforeProblems, afterProblems) => {
+    const totalBefore = beforeProblems.overhangs.length + beforeProblems.spikes.length + beforeProblems.thinAreas.length;
+    const totalAfter = afterProblems.overhangs.length + afterProblems.spikes.length + afterProblems.thinAreas.length;
+
+    if (totalBefore === 0) return 1; // War schon perfekt
+    return Math.max(0, (totalBefore - totalAfter) / totalBefore);
+};
+
+const calculatePrintabilityScore = (problems) => {
+    const maxProblems = 100; // Angenommene max Probleme für Normalisierung
+    const totalProblems = problems.overhangs.length + problems.spikes.length + problems.thinAreas.length;
+
+    return Math.max(0, Math.min(100, 100 - (totalProblems / maxProblems) * 100));
+};
+
+const calculateVertexNormals = (positions, indices) => {
+    const vertexCount = positions.length / 3;
+    const normals = new Array(vertexCount).fill(null).map(() => new THREE.Vector3());
+
+    // Für jedes Dreieck die Normale berechnen und zu Vertex-Normalen addieren
+    for (let i = 0; i < indices.length; i += 3) {
+        const i1 = indices[i] * 3;
+        const i2 = indices[i + 1] * 3;
+        const i3 = indices[i + 2] * 3;
+
+        const v1 = new THREE.Vector3(positions[i1], positions[i1 + 1], positions[i1 + 2]);
+        const v2 = new THREE.Vector3(positions[i2], positions[i2 + 1], positions[i2 + 2]);
+        const v3 = new THREE.Vector3(positions[i3], positions[i3 + 1], positions[i3 + 2]);
+
+        // Dreieck-Normale
+        const edge1 = v2.clone().sub(v1);
+        const edge2 = v3.clone().sub(v1);
+        const faceNormal = edge1.cross(edge2).normalize();
+
+        // Zu Vertex-Normalen addieren
+        normals[indices[i]].add(faceNormal);
+        normals[indices[i + 1]].add(faceNormal);
+        normals[indices[i + 2]].add(faceNormal);
+    }
+
+    // Normalen normalisieren
+    return normals.map(normal => normal.normalize());
+};
+
 export const generateSTLString = (geometry) => {
     const vertices = geometry.attributes.position.array;
     const indices = geometry.index ? geometry.index.array : null;
@@ -173,35 +542,6 @@ export const createThickGeometry = (originalGeometry, wallThickness = 2.0) => {
 };
 
 // ===== HILFSFUNKTIONEN =====
-
-const calculateVertexNormals = (positions, indices) => {
-    const vertexCount = positions.length / 3;
-    const normals = new Array(vertexCount).fill(null).map(() => new THREE.Vector3());
-
-    // Für jedes Dreieck die Normale berechnen und zu Vertex-Normalen addieren
-    for (let i = 0; i < indices.length; i += 3) {
-        const i1 = indices[i] * 3;
-        const i2 = indices[i + 1] * 3;
-        const i3 = indices[i + 2] * 3;
-
-        const v1 = new THREE.Vector3(positions[i1], positions[i1 + 1], positions[i1 + 2]);
-        const v2 = new THREE.Vector3(positions[i2], positions[i2 + 1], positions[i2 + 2]);
-        const v3 = new THREE.Vector3(positions[i3], positions[i3 + 1], positions[i3 + 2]);
-
-        // Dreieck-Normale
-        const edge1 = v2.clone().sub(v1);
-        const edge2 = v3.clone().sub(v1);
-        const faceNormal = edge1.cross(edge2).normalize();
-
-        // Zu Vertex-Normalen addieren
-        normals[indices[i]].add(faceNormal);
-        normals[indices[i + 1]].add(faceNormal);
-        normals[indices[i + 2]].add(faceNormal);
-    }
-
-    // Normalen normalisieren
-    return normals.map(normal => normal.normalize());
-};
 
 const findEdgeVertices = (geometry) => {
     // Vereinfachte Methode: Nimm oberste und unterste Vertices
