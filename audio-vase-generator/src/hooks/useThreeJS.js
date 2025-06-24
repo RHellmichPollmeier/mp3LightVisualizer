@@ -1,5 +1,5 @@
 // ============================================
-// src/hooks/useThreeJS.js - DUALER BELEUCHTUNGSMODUS + STL-SOCKEL
+// src/hooks/useThreeJS.js - LAMPENSCHIRM-BELEUCHTUNG KOMPLETT
 // ============================================
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
@@ -35,7 +35,7 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = isRefractionMode ? 2.0 : 1.2; // Unterschiedliche Belichtung
+        renderer.toneMappingExposure = isRefractionMode ? 2.2 : 1.2; // Ausgewogene Belichtung
         renderer.outputColorSpace = THREE.SRGBColorSpace;
 
         // Environment Map und CubeCamera
@@ -123,15 +123,15 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
         envMapCamera.position.set(0, 0, 0);
         const envMap = cubeRenderTarget.texture;
 
-        // BELEUCHTUNG - Komplett unterschiedlich je nach Modus
+        // BELEUCHTUNG - VERSTÄRKT für Lampenschirm-Effekt
         let keyLight, fillLight, rimLight, ambientLight;
 
         if (isRefractionMode) {
-            // LICHTBRECHUNGS-MODUS: Reduzierte Umgebungsbeleuchtung
-            keyLight = new THREE.DirectionalLight(0xfff8dc, 0.8);
-            fillLight = new THREE.DirectionalLight(0x87ceeb, 0.3);
-            rimLight = new THREE.DirectionalLight(0xffa726, 0.4);
-            ambientLight = new THREE.AmbientLight(0x404080, 0.05);
+            // LICHTBRECHUNGS-MODUS: Verstärkte Beleuchtung für Lampenschirm
+            keyLight = new THREE.DirectionalLight(0xfff8dc, 2.0);   // HELLER!
+            fillLight = new THREE.DirectionalLight(0x87ceeb, 1.2);  // HELLER!
+            rimLight = new THREE.DirectionalLight(0xffa726, 1.0);   // HELLER!
+            ambientLight = new THREE.AmbientLight(0x404080, 0.4);   // HELLER!
         } else {
             // HELL-MODUS: Normale, starke Beleuchtung
             keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
@@ -161,7 +161,7 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
 
         scene.add(ambientLight);
 
-        // Point Lights - Nur im Hell-Modus aktiv
+        // Point Lights - VERSTÄRKT für beide Modi
         if (!isRefractionMode) {
             const pointLights = [
                 { color: 0xffffff, intensity: 0.6, position: [15, 20, 10] },
@@ -178,10 +178,11 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
                 environmentLightsRef.current.push(light);
             });
         } else {
-            // Reduzierte Point Lights für Lichtbrechungs-Modus
+            // Point Lights für Lichtbrechungs-Modus
             const pointLights = [
-                { color: 0xffffff, intensity: 0.3, position: [15, 20, 10] },
-                { color: 0x64b5f6, intensity: 0.2, position: [-10, 15, 15] },
+                { color: 0xffffff, intensity: 0.8, position: [15, 20, 10] },
+                { color: 0x64b5f6, intensity: 0.6, position: [-10, 15, 15] },
+                { color: 0xffa726, intensity: 0.6, position: [5, -10, 20] },
             ];
 
             pointLights.forEach(lightConfig => {
@@ -311,8 +312,8 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
             if (environmentLightsRef.current.length > 0) {
                 environmentLightsRef.current.forEach((light, index) => {
                     const offset = index * Math.PI * 0.4;
-                    const baseIntensity = isRefractionMode ? 0.2 : 0.5;
-                    const variation = isRefractionMode ? 0.1 : 0.3;
+                    const baseIntensity = isRefractionMode ? 0.6 : 0.5;
+                    const variation = isRefractionMode ? 0.3 : 0.3;
                     light.intensity = baseIntensity + Math.sin(time * 2 + offset) * variation;
 
                     if (!isRefractionMode) {
@@ -325,9 +326,9 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
                 });
             }
 
-            // Spezielle Animation für Lichtbrechungs-Modus
+            // ===== LAMPENSCHIRM-ANIMATION für Lichtbrechungs-Modus =====
             if (innerLightRef.current && isRefractionMode) {
-                // Lichter mit der Vase synchronisieren (inklusive Placement-Position)
+                // Vase-Position ermitteln
                 let vaseBaseY = 0;
                 let vaseBaseX = 0;
                 let vaseBaseZ = 0;
@@ -335,13 +336,13 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
                 if (meshRef.current) {
                     vaseBaseX = meshRef.current.position.x;
                     vaseBaseZ = meshRef.current.position.z;
+                    vaseBaseY = meshRef.current.position.y; // Aktuelle Vase-Position
                 }
 
                 if (baseMeshRef.current) {
                     baseMeshRef.current.geometry.computeBoundingBox();
                     const sockelBox = baseMeshRef.current.geometry.boundingBox;
                     const sockelScale = baseMeshRef.current.scale.x;
-
                     const sockelHoehe = (sockelBox.max.y - sockelBox.min.y) * sockelScale;
                     const sockelMinY = sockelBox.min.y * sockelScale;
                     const sockelOberseite = -sockelMinY + sockelHoehe;
@@ -350,26 +351,85 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
                 }
 
                 const animationOffset = Math.sin(time * 0.5) * 0.3;
+
+                // Lichter-Gruppe mit der Vase mitbewegen
                 innerLightRef.current.position.set(
                     vaseBaseX,
                     vaseBaseY + animationOffset,
                     vaseBaseZ
                 );
 
-                const mainLight = innerLightRef.current.children[0];
-                if (mainLight) {
-                    mainLight.intensity = 3.5 + Math.sin(time * 2) * 1.0;
+                // ===== HAUPTLAMPE IM INNEREN Animation (Index 0) =====
+                const mainInnerLight = innerLightRef.current.children[0];
+                if (mainInnerLight) {
+                    // Sanftes Pulsieren der Hauptlampe
+                    mainInnerLight.intensity = 18.0 + Math.sin(time * 1.5) * 4.0;
+
+                    // Die Position bleibt relativ zur Gruppe (ist schon bei 1/3 der Höhe)
+                    // Kleine Schwankung für lebendigen Effekt
+                    const vaseHeight = 20;
+                    const oneThirdHeight = -vaseHeight / 2 + (vaseHeight / 3);
+                    mainInnerLight.position.y = oneThirdHeight + Math.sin(time * 2) * 0.2;
                 }
 
-                innerLightRef.current.children.forEach((light, index) => {
-                    if (index > 0 && index < 5) {
-                        const angle = time * 0.8 + index * Math.PI * 0.5;
-                        const radius = 4;
-                        light.position.x = Math.sin(angle) * radius;
-                        light.position.z = Math.cos(angle) * radius;
-                        light.intensity = 1.5 + Math.sin(time * 3 + index) * 0.8;
+                // ===== INNERE RING-LICHTER Animation (Index 1-10) =====
+                for (let i = 1; i <= 10; i++) {
+                    const light = innerLightRef.current.children[i];
+                    if (light) {
+                        const baseIntensity = i <= 2 ? 12.0 : 8.0; // Höhere für zentrale Lichter
+                        light.intensity = baseIntensity + Math.sin(time * 1.2 + i * 0.3) * 2.0;
+
+                        // Sanfte Rotation für Ring-Lichter (Index 3-6)
+                        if (i >= 3 && i <= 6) {
+                            const angle = time * 0.2 + i * Math.PI * 0.5;
+                            const radius = 2; // Kleine Bewegung im Inneren
+                            light.position.x = Math.sin(angle) * radius;
+                            light.position.z = Math.cos(angle) * radius;
+                        }
+
+                        // Vertikale Schwankung für diagonale Lichter (Index 7-10)
+                        if (i >= 7 && i <= 10) {
+                            const vaseHeight = 20;
+                            const oneThirdHeight = -vaseHeight / 2 + (vaseHeight / 3);
+                            const baseY = i % 2 === 0 ? oneThirdHeight + 1 : oneThirdHeight - 1;
+                            light.position.y = baseY + Math.sin(time * 1.8 + i) * 0.3;
+                        }
                     }
-                });
+                }
+
+                // ===== FARBIGE AKZENT-LICHTER Animation (Index 11-14) =====
+                for (let i = 11; i <= 14; i++) {
+                    const light = innerLightRef.current.children[i];
+                    if (light) {
+                        light.intensity = 4.0 + Math.sin(time * 2.5 + i * 0.7) * 1.5;
+
+                        // Kleine kreisförmige Bewegung
+                        const angle = time * 0.4 + i * Math.PI * 0.25;
+                        const radius = 0.5;
+                        const currentX = light.position.x;
+                        const currentZ = light.position.z;
+                        light.position.x = currentX + Math.sin(angle) * radius * 0.1;
+                        light.position.z = currentZ + Math.cos(angle) * radius * 0.1;
+                    }
+                }
+
+                // ===== SUPPORT-LICHTER (Bodenlichter) Animation (Index 15-19) =====
+                for (let i = 15; i <= 19; i++) {
+                    const light = innerLightRef.current.children[i];
+                    if (light) {
+                        light.intensity = 2.0 + Math.sin(time * 1.8 + i * 0.4) * 1.0;
+                    }
+                }
+
+                // ===== TOP SPOT LIGHT Animation =====
+                const topSpot = innerLightRef.current.children[20]; // Spot Light
+                if (topSpot) {
+                    topSpot.intensity = 6.0 + Math.sin(time * 1.0) * 2.0;
+
+                    // Leichte Bewegung des Spot Lights
+                    topSpot.position.x = Math.sin(time * 0.3) * 2;
+                    topSpot.position.z = Math.cos(time * 0.3) * 2;
+                }
             }
 
             // Key Light Bewegung
@@ -430,13 +490,20 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
             sceneRef.current.add(mesh);
             meshRef.current = mesh;
 
-            // Bodenlicht nur im Lichtbrechungs-Modus hinzufügen
+            // Lampenschirm-Beleuchtung nur im Lichtbrechungs-Modus hinzufügen
             if (lightModeRef.current) {
                 const vaseHeight = 20;
                 const innerLightGroup = createInnerLight(vaseHeight);
                 innerLightGroup.position.set(vaseXPosition, vaseYPosition, vaseZPosition); // Lichter auf gleicher Position wie Vase
                 sceneRef.current.add(innerLightGroup);
                 innerLightRef.current = innerLightGroup;
+
+                // Debug-Info
+                console.log('🏮 Lampenschirm-Setup:');
+                console.log(`💡 Hauptlicht INNEN bei y = ${(-20 / 2) + (20 / 3)} (relativ zur Vase)`);
+                console.log(`🎯 Vase-Position: x=${vaseXPosition}, y=${vaseYPosition}, z=${vaseZPosition}`);
+                console.log(`⚡ Lichter-Gruppe wird mit Vase mitbewegt`);
+                console.log(`🌟 Erwarteter Effekt: Licht scheint von INNEN durch Glaswände`);
             }
         }
     };
@@ -519,35 +586,41 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
     };
 };
 
-// Materialien - Angepasst an Modus UND Materialstärke
+// ============================================
+// LAMPENSCHIRM-MATERIALIEN - Optimiert für Innenlicht
+// ============================================
+
 export const createWarmLampshade = (isRefractionMode = false, customThickness = null) => {
-    // Basis-Thickness je nach Modus, kann aber überschrieben werden
-    const baseThickness = isRefractionMode ? 1.8 : 1.2;
-    const thickness = customThickness || baseThickness;
+    const thickness = customThickness || (isRefractionMode ? 1.8 : 1.2);
 
     if (isRefractionMode) {
-        // Optimiert für Lichtbrechung
+        // LAMPENSCHIRM-MATERIAL: Optimiert für Licht von innen
         return new THREE.MeshPhysicalMaterial({
             color: 0xfff8e1,
             metalness: 0.0,
             roughness: 0.02,
-            transmission: 0.97,
+            transmission: 0.82,     // Optimiert für Innenlicht
             transparent: true,
-            opacity: 0.08,
+            opacity: 0.35,
             thickness: thickness,
             ior: 1.52,
             emissive: 0xfff3e0,
-            emissiveIntensity: 0.03,
-            envMapIntensity: 2.5,
+            emissiveIntensity: 0.08,
+            envMapIntensity: 2.2,
             clearcoat: 1.0,
             clearcoatRoughness: 0.02,
             sheen: 0.9,
-            sheenRoughness: 0.05,
+            sheenRoughness: 0.04,
             sheenColor: 0xffecb3,
-            reflectivity: 0.95
+            reflectivity: 0.9,
+
+            // WICHTIG für Lampenschirm:
+            side: THREE.DoubleSide,
+            attenuationDistance: 0.8,
+            attenuationColor: new THREE.Color(0xfff8e1).multiplyScalar(0.95)
         });
     } else {
-        // Normales Material für Hell-Modus
+        // Hell-Modus Material (unverändert)
         return new THREE.MeshPhysicalMaterial({
             color: 0xfff8e1,
             metalness: 0.0,
@@ -571,28 +644,31 @@ export const createWarmLampshade = (isRefractionMode = false, customThickness = 
 };
 
 export const createCoolLampshade = (isRefractionMode = false, customThickness = null) => {
-    const baseThickness = isRefractionMode ? 1.5 : 1.2;
-    const thickness = customThickness || baseThickness;
+    const thickness = customThickness || (isRefractionMode ? 1.5 : 1.2);
 
     if (isRefractionMode) {
         return new THREE.MeshPhysicalMaterial({
             color: 0xe3f2fd,
             metalness: 0.0,
-            roughness: 0.01,
-            transmission: 0.98,
+            roughness: 0.02,
+            transmission: 0.85,
             transparent: true,
-            opacity: 0.06,
+            opacity: 0.32,
             thickness: thickness,
-            ior: 1.55,
+            ior: 1.54,
             emissive: 0xe1f5fe,
-            emissiveIntensity: 0.02,
-            envMapIntensity: 2.8,
+            emissiveIntensity: 0.07,
+            envMapIntensity: 2.4,
             clearcoat: 1.0,
-            clearcoatRoughness: 0.01,
-            sheen: 0.7,
-            sheenRoughness: 0.04,
+            clearcoatRoughness: 0.02,
+            sheen: 0.8,
+            sheenRoughness: 0.03,
             sheenColor: 0xe3f2fd,
-            reflectivity: 0.98
+            reflectivity: 0.92,
+
+            side: THREE.DoubleSide,
+            attenuationDistance: 0.7,
+            attenuationColor: new THREE.Color(0xe3f2fd).multiplyScalar(0.96)
         });
     } else {
         return new THREE.MeshPhysicalMaterial({
@@ -618,28 +694,31 @@ export const createCoolLampshade = (isRefractionMode = false, customThickness = 
 };
 
 export const createAmberLampshade = (isRefractionMode = false, customThickness = null) => {
-    const baseThickness = isRefractionMode ? 2.2 : 1.8;
-    const thickness = customThickness || baseThickness;
+    const thickness = customThickness || (isRefractionMode ? 2.0 : 1.8);
 
     if (isRefractionMode) {
         return new THREE.MeshPhysicalMaterial({
             color: 0xffc107,
             metalness: 0.0,
-            roughness: 0.04,
-            transmission: 0.92,
+            roughness: 0.03,
+            transmission: 0.78,
             transparent: true,
-            opacity: 0.15,
+            opacity: 0.42,
             thickness: thickness,
             ior: 1.58,
             emissive: 0xffb300,
-            emissiveIntensity: 0.08,
-            envMapIntensity: 2.2,
+            emissiveIntensity: 0.15, // Stärkeres Eigenleuchten für Amber
+            envMapIntensity: 2.0,
             clearcoat: 0.95,
-            clearcoatRoughness: 0.06,
+            clearcoatRoughness: 0.04,
             sheen: 1.0,
-            sheenRoughness: 0.1,
+            sheenRoughness: 0.08,
             sheenColor: 0xffd54f,
-            reflectivity: 0.9
+            reflectivity: 0.88,
+
+            side: THREE.DoubleSide,
+            attenuationDistance: 1.2,
+            attenuationColor: new THREE.Color(0xffc107).multiplyScalar(0.9)
         });
     } else {
         return new THREE.MeshPhysicalMaterial({
@@ -665,28 +744,31 @@ export const createAmberLampshade = (isRefractionMode = false, customThickness =
 };
 
 export const createSmokedLampshade = (isRefractionMode = false, customThickness = null) => {
-    const baseThickness = isRefractionMode ? 2.8 : 2.0;
-    const thickness = customThickness || baseThickness;
+    const thickness = customThickness || (isRefractionMode ? 2.5 : 2.0);
 
     if (isRefractionMode) {
         return new THREE.MeshPhysicalMaterial({
             color: 0x795548,
             metalness: 0.0,
-            roughness: 0.08,
-            transmission: 0.85,
+            roughness: 0.05,
+            transmission: 0.72,
             transparent: true,
-            opacity: 0.25,
+            opacity: 0.48,
             thickness: thickness,
             ior: 1.56,
-            emissive: 0x3e2723,
-            emissiveIntensity: 0.02,
-            envMapIntensity: 2.0,
+            emissive: 0x8d6e63,
+            emissiveIntensity: 0.06,
+            envMapIntensity: 1.8,
             clearcoat: 0.9,
-            clearcoatRoughness: 0.1,
-            sheen: 0.5,
-            sheenRoughness: 0.15,
-            sheenColor: 0x8d6e63,
-            reflectivity: 0.8
+            clearcoatRoughness: 0.08,
+            sheen: 0.6,
+            sheenRoughness: 0.12,
+            sheenColor: 0xa1887f,
+            reflectivity: 0.82,
+
+            side: THREE.DoubleSide,
+            attenuationDistance: 1.5,
+            attenuationColor: new THREE.Color(0x795548).multiplyScalar(0.85)
         });
     } else {
         return new THREE.MeshPhysicalMaterial({

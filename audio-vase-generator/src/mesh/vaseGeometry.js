@@ -1,3 +1,6 @@
+// ============================================
+// src/mesh/vaseGeometry.js - VERBESSERTE BELEUCHTUNG
+// ============================================
 import * as THREE from 'three';
 import { PerlinNoise } from '../utils/perlinNoise.js';
 import { smoothAudioData } from '../utils/audioAnalysis.js';
@@ -239,44 +242,89 @@ export const createVaseMaterial = () => {
     });
 };
 
-// Bodenlicht-Gruppe für spektakuläre Lichtbrechungseffekte
 export const createInnerLight = (vaseHeight = 20) => {
-    // Hauptlicht am Boden der Vase
-    const mainLight = new THREE.PointLight(0xffffff, 4.0, 60); // Helles weißes Licht
-    mainLight.position.set(0, -vaseHeight / 2 - 2, 0); // Am Boden der Vase
-    mainLight.castShadow = false; // Keine Schatten für saubere Brechung
-
-    // Lichtgruppe für mehrere Lichtquellen
     const lightGroup = new THREE.Group();
-    lightGroup.add(mainLight);
 
-    // Zusätzliche farbige Lichter für Regenbogeneffekte
-    const colorLights = [
-        { color: 0xff6b6b, position: [3, -vaseHeight / 2 - 1, 0], intensity: 2.0 },   // Rot
-        { color: 0x4ecdc4, position: [-3, -vaseHeight / 2 - 1, 0], intensity: 2.0 },  // Türkis
-        { color: 0x45b7d1, position: [0, -vaseHeight / 2 - 1, 3], intensity: 2.0 },   // Blau
-        { color: 0xffa726, position: [0, -vaseHeight / 2 - 1, -3], intensity: 2.0 },  // Orange
+    // ===== HAUPTLAMPE IM INNEREN der Vase bei 1/3 der Höhe ===== 
+    const innerMainLight = new THREE.PointLight(0xffffff, 18.0, 60); // SEHR HELL für Durchleuchtung
+    const oneThirdHeight = -vaseHeight / 2 + (vaseHeight / 3); // 1/3 von unten
+    innerMainLight.position.set(0, oneThirdHeight, 0); // IM INNEREN bei 1/3 Höhe!
+    innerMainLight.castShadow = false;
+    lightGroup.add(innerMainLight);
+
+    // ===== ZUSÄTZLICHE INNENLICHTER für gleichmäßige Ausleuchtung =====
+    const innerLights = [
+        // Zentrale Lichter auf verschiedenen Höhen im Inneren
+        { color: 0xffffff, position: [0, oneThirdHeight + 3, 0], intensity: 12.0 },    // Etwas höher
+        { color: 0xffffff, position: [0, oneThirdHeight - 2, 0], intensity: 12.0 },    // Etwas tiefer
+
+        // Ring von Lichtern um die Hauptlampe (im Inneren)
+        { color: 0xffffff, position: [2, oneThirdHeight, 0], intensity: 8.0 },         // Rechts innen
+        { color: 0xffffff, position: [-2, oneThirdHeight, 0], intensity: 8.0 },        // Links innen
+        { color: 0xffffff, position: [0, oneThirdHeight, 2], intensity: 8.0 },         // Vorne innen
+        { color: 0xffffff, position: [0, oneThirdHeight, -2], intensity: 8.0 },        // Hinten innen
+
+        // Diagonale Lichter für bessere Verteilung
+        { color: 0xffffff, position: [1.5, oneThirdHeight + 1, 1.5], intensity: 6.0 },
+        { color: 0xffffff, position: [-1.5, oneThirdHeight + 1, -1.5], intensity: 6.0 },
+        { color: 0xffffff, position: [1.5, oneThirdHeight - 1, -1.5], intensity: 6.0 },
+        { color: 0xffffff, position: [-1.5, oneThirdHeight - 1, 1.5], intensity: 6.0 },
     ];
 
-    colorLights.forEach(lightConfig => {
+    innerLights.forEach(lightConfig => {
         const light = new THREE.PointLight(lightConfig.color, lightConfig.intensity, 40);
         light.position.set(...lightConfig.position);
         light.castShadow = false;
         lightGroup.add(light);
     });
 
-    // Spot Light von unten für dramatische Effekte
-    const spotLight = new THREE.SpotLight(0xffffff, 3.0, 50, Math.PI * 0.3, 0.1, 1);
-    spotLight.position.set(0, -vaseHeight / 2 - 5, 0);
-    spotLight.target.position.set(0, 0, 0);
-    spotLight.castShadow = false;
-    lightGroup.add(spotLight);
-    lightGroup.add(spotLight.target);
+    // ===== FARBIGE AKZENT-LICHTER im Inneren für schöne Effekte =====
+    const accentLights = [
+        { color: 0xfff3e0, position: [1, oneThirdHeight + 2, 0], intensity: 4.0 },     // Warm oben
+        { color: 0xe3f2fd, position: [-1, oneThirdHeight + 2, 0], intensity: 4.0 },    // Kühl oben
+        { color: 0xffecb3, position: [0, oneThirdHeight + 1, 1], intensity: 4.0 },     // Gelblich
+        { color: 0xf3e5f5, position: [0, oneThirdHeight + 1, -1], intensity: 4.0 },    // Lila
+    ];
 
-    // Hemisphere Light für sanfte Aufhellung
-    const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0xffa726, 0.6);
-    hemiLight.position.set(0, -vaseHeight / 2, 0);
+    accentLights.forEach(lightConfig => {
+        const light = new THREE.PointLight(lightConfig.color, lightConfig.intensity, 25);
+        light.position.set(...lightConfig.position);
+        light.castShadow = false;
+        lightGroup.add(light);
+    });
+
+    // ===== KLEINE BODENLICHTER für subtile Unterstützung =====
+    const supportLights = [
+        { color: 0xffffff, position: [0, -vaseHeight / 2 - 2, 0], intensity: 3.0 },    // Direkt unter Vase
+        { color: 0xe3f2fd, position: [3, -vaseHeight / 2 - 1, 0], intensity: 2.0 },    // Rechts unten
+        { color: 0xfff3e0, position: [-3, -vaseHeight / 2 - 1, 0], intensity: 2.0 },   // Links unten
+        { color: 0xf8bbd9, position: [0, -vaseHeight / 2 - 1, 3], intensity: 2.0 },    // Vorne unten
+        { color: 0xc8e6c9, position: [0, -vaseHeight / 2 - 1, -3], intensity: 2.0 },   // Hinten unten
+    ];
+
+    supportLights.forEach(lightConfig => {
+        const light = new THREE.PointLight(lightConfig.color, lightConfig.intensity, 30);
+        light.position.set(...lightConfig.position);
+        light.castShadow = false;
+        lightGroup.add(light);
+    });
+
+    // ===== SPOT LIGHT von oben für zusätzliche Dramatik =====
+    const topSpot = new THREE.SpotLight(0xffffff, 6.0, 50, Math.PI * 0.5, 0.2, 1);
+    topSpot.position.set(0, vaseHeight / 2 + 5, 0); // Über der Vase
+    topSpot.target.position.set(0, oneThirdHeight, 0); // Zielt auf die Innenlampe
+    topSpot.castShadow = false;
+    lightGroup.add(topSpot);
+    lightGroup.add(topSpot.target);
+
+    // ===== HEMISPHERE für sanfte Umgebungsbeleuchtung =====
+    const hemiLight = new THREE.HemisphereLight(0xfff8e1, 0x87ceeb, 0.8);
     lightGroup.add(hemiLight);
+
+    console.log(`🏮 Lampenschirm-Beleuchtung erstellt: ${lightGroup.children.length} Lichter!`);
+    console.log(`💡 Hauptlampe INNEN bei y = ${oneThirdHeight.toFixed(2)} (1/3 der Höhe)`);
+    console.log(`🔥 Hauptlampe Intensität: ${innerMainLight.intensity}`);
+    console.log(`📐 Vase Höhe: ${vaseHeight}, Boden: ${-vaseHeight / 2}, Top: ${vaseHeight / 2}`);
 
     return lightGroup;
 };
