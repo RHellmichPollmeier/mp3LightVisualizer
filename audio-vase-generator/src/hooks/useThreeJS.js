@@ -1,9 +1,9 @@
 // ============================================
-// src/hooks/useThreeJS.js - LAMPENSCHIRM-BELEUCHTUNG KOMPLETT
+// src/hooks/useThreeJS.js - VOLUMETRISCHE BELEUCHTUNG & CAUSTICS
 // ============================================
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { createInnerLight } from '../mesh/vaseGeometry.js';
+import { createInnerLight, createVolumetricLighting, createCausticEffect, createLightParticles } from '../mesh/vaseGeometry.js';
 
 export const useThreeJS = (canvasRef, isRefractionMode = false) => {
     const sceneRef = useRef();
@@ -12,6 +12,9 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
     const meshRef = useRef();
     const baseMeshRef = useRef();  // NEUER REF für STL-Sockel
     const innerLightRef = useRef();
+    const volumetricLightRef = useRef(); // NEUE REFS für volumetrische Effekte
+    const causticEffectRef = useRef();
+    const lightParticlesRef = useRef();
     const animationIdRef = useRef();
     const environmentLightsRef = useRef([]);
     const lightModeRef = useRef(isRefractionMode);
@@ -254,6 +257,29 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
             });
         }
 
+        // ===== VOLUMETRISCHE BELEUCHTUNGS-EFFEKTE - Nur im Lichtbrechungs-Modus =====
+        if (isRefractionMode) {
+            // Volumetrische Lichtstrahlen
+            const volumetricLighting = createVolumetricLighting(20);
+            scene.add(volumetricLighting);
+            volumetricLightRef.current = volumetricLighting;
+
+            // Caustic-Effekte am Boden
+            const causticEffect = createCausticEffect();
+            scene.add(causticEffect);
+            causticEffectRef.current = causticEffect;
+
+            // Schwebende Lichtpartikel
+            const lightParticles = createLightParticles();
+            scene.add(lightParticles);
+            lightParticlesRef.current = lightParticles;
+
+            console.log('🌟 Volumetrische Effekte aktiviert:');
+            console.log('✨ Caustics am Boden für Lichtbrechungsmuster');
+            console.log('💫 Schwebende Lichtpartikel für Atmosphäre');
+            console.log('🌟 Volumetrische Lichtkegel durch die Vase');
+        }
+
         sceneRef.current = scene;
         rendererRef.current = renderer;
         cameraRef.current = camera;
@@ -432,6 +458,62 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
                 }
             }
 
+            // ===== VOLUMETRISCHE EFFEKTE Animation =====
+            if (isRefractionMode) {
+                // Volumetrische Lichtstrahlen animieren
+                if (volumetricLightRef.current) {
+                    volumetricLightRef.current.children.forEach((lightCone, index) => {
+                        if (lightCone.material && lightCone.material.uniforms) {
+                            lightCone.material.uniforms.time.value = time;
+
+                            // Verschiedene Animationsgeschwindigkeiten für jeden Kegel
+                            const speed = 1.0 + index * 0.3;
+                            lightCone.material.uniforms.intensity.value =
+                                (0.3 + Math.sin(time * speed) * 0.2) * (index === 0 ? 1.5 : 1.0);
+
+                            // Leichte Position-Animation für mehr Dynamik
+                            const originalY = [-8, -6, -6, -6, -6][index] || -6;
+                            lightCone.position.y = originalY + Math.sin(time * 0.8 + index) * 0.5;
+                        }
+                    });
+                }
+
+                // Caustic-Effekte animieren
+                if (causticEffectRef.current) {
+                    const causticMesh = causticEffectRef.current.children[0]; // Erstes Kind ist das Caustic-Pattern
+                    if (causticMesh && causticMesh.material && causticMesh.material.uniforms) {
+                        causticMesh.material.uniforms.time.value = time;
+                        causticMesh.material.uniforms.intensity.value = 0.4 + Math.sin(time * 1.2) * 0.2;
+                        causticMesh.material.uniforms.speed.value = 1.0 + Math.sin(time * 0.5) * 0.3;
+                    }
+
+                    // Punkt-Projektionen animieren (ab Index 1)
+                    for (let i = 1; i < causticEffectRef.current.children.length; i++) {
+                        const spot = causticEffectRef.current.children[i];
+                        if (spot.material) {
+                            spot.material.opacity = 0.2 + Math.sin(time * 1.5 + i * 0.5) * 0.15;
+
+                            // Leichte Größenveränderung
+                            const baseScale = [1.0, 0.6, 0.6, 0.5, 0.5][i - 1] || 0.5;
+                            const scaleVariation = 1.0 + Math.sin(time * 2.0 + i) * 0.1;
+                            spot.scale.setScalar(baseScale * scaleVariation);
+                        }
+                    }
+                }
+
+                // Lichtpartikel animieren
+                if (lightParticlesRef.current) {
+                    const particleSystem = lightParticlesRef.current.children[0];
+                    if (particleSystem && particleSystem.material && particleSystem.material.uniforms) {
+                        particleSystem.material.uniforms.time.value = time;
+                        particleSystem.material.uniforms.intensity.value = 0.6 + Math.sin(time * 0.8) * 0.3;
+
+                        // Partikel-Position Updates sind im Vertex Shader implementiert
+                        particleSystem.geometry.attributes.position.needsUpdate = true;
+                    }
+                }
+            }
+
             // Key Light Bewegung
             keyLight.position.x = 20 + Math.sin(time * 0.5) * 5;
             keyLight.position.z = 15 + Math.cos(time * 0.5) * 5;
@@ -444,6 +526,26 @@ export const useThreeJS = (canvasRef, isRefractionMode = false) => {
         return () => {
             if (animationIdRef.current) {
                 cancelAnimationFrame(animationIdRef.current);
+            }
+
+            // Cleanup volumetrische Effekte
+            if (volumetricLightRef.current) {
+                volumetricLightRef.current.children.forEach(child => {
+                    if (child.material) child.material.dispose();
+                    if (child.geometry) child.geometry.dispose();
+                });
+            }
+            if (causticEffectRef.current) {
+                causticEffectRef.current.children.forEach(child => {
+                    if (child.material) child.material.dispose();
+                    if (child.geometry) child.geometry.dispose();
+                });
+            }
+            if (lightParticlesRef.current) {
+                lightParticlesRef.current.children.forEach(child => {
+                    if (child.material) child.material.dispose();
+                    if (child.geometry) child.geometry.dispose();
+                });
             }
         };
     }, [canvasRef, isRefractionMode]); // isRefractionMode als Dependency

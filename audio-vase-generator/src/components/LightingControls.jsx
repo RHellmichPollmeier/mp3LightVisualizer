@@ -80,26 +80,26 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                         {/* Visueller Indikator für Materialstärke */}
                         <div className="grid grid-cols-4 gap-2 text-xs">
                             <div className={`p-2 rounded text-center transition-all ${lightingSettings.materialThickness <= 1.5
-                                    ? 'bg-blue-600/50 text-white border border-blue-400'
-                                    : 'bg-blue-600/20 text-blue-300'
+                                ? 'bg-blue-600/50 text-white border border-blue-400'
+                                : 'bg-blue-600/20 text-blue-300'
                                 }`}>
                                 Dünn<br />≤1.5mm
                             </div>
                             <div className={`p-2 rounded text-center transition-all ${lightingSettings.materialThickness > 1.5 && lightingSettings.materialThickness <= 3.0
-                                    ? 'bg-green-600/50 text-white border border-green-400'
-                                    : 'bg-green-600/20 text-green-300'
+                                ? 'bg-green-600/50 text-white border border-green-400'
+                                : 'bg-green-600/20 text-green-300'
                                 }`}>
                                 Normal<br />1.5-3mm
                             </div>
                             <div className={`p-2 rounded text-center transition-all ${lightingSettings.materialThickness > 3.0 && lightingSettings.materialThickness <= 5.0
-                                    ? 'bg-orange-600/50 text-white border border-orange-400'
-                                    : 'bg-orange-600/20 text-orange-300'
+                                ? 'bg-orange-600/50 text-white border border-orange-400'
+                                : 'bg-orange-600/20 text-orange-300'
                                 }`}>
                                 Dick<br />3-5mm
                             </div>
                             <div className={`p-2 rounded text-center transition-all ${lightingSettings.materialThickness > 5.0
-                                    ? 'bg-red-600/50 text-white border border-red-400'
-                                    : 'bg-red-600/20 text-red-300'
+                                ? 'bg-red-600/50 text-white border border-red-400'
+                                : 'bg-red-600/20 text-red-300'
                                 }`}>
                                 Sehr Dick<br />{`>`}5mm
                             </div>
@@ -111,6 +111,96 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                             • <strong>Normal (1.5-3mm):</strong> Ausgewogene Brechung und Transparenz<br />
                             • <strong>Dick (3-5mm):</strong> Starke Brechung, intensivere Farben<br />
                             • <strong>Sehr Dick ({`>`}5mm):</strong> Dramatische Lichteffekte, Prisma-ähnlich
+                        </div>
+                    </div>
+                </div>
+
+                {/* NEUE VOLUMETRISCHE EFFEKTE SEKTION - Nur im Lichtbrechungs-Modus */}
+                <div className="border-b border-white/20 pb-4">
+                    <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                        <Zap className="w-4 h-4" />
+                        Volumetrische Effekte
+                        <span className="text-xs bg-purple-600/30 px-2 py-1 rounded">
+                            Nur Lichtbrechungs-Modus
+                        </span>
+                    </h3>
+
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-white text-sm mb-2">
+                                Lichtstrahlen Intensität: {lightingSettings.volumetricIntensity || 0.4}
+                            </label>
+                            <input
+                                type="range"
+                                min="0"
+                                max="1.0"
+                                step="0.1"
+                                value={lightingSettings.volumetricIntensity || 0.4}
+                                onChange={(e) => handleChange('volumetricIntensity', Number(e.target.value))}
+                                className="w-full"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-white text-sm mb-2">
+                                Caustic Stärke: {lightingSettings.causticStrength || 0.3}
+                            </label>
+                            <input
+                                type="range"
+                                min="0"
+                                max="0.8"
+                                step="0.05"
+                                value={lightingSettings.causticStrength || 0.3}
+                                onChange={(e) => handleChange('causticStrength', Number(e.target.value))}
+                                className="w-full"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-white text-sm mb-2">
+                                Lichtpartikel Dichte: {lightingSettings.particleDensity || 0.8}
+                            </label>
+                            <input
+                                type="range"
+                                min="0"
+                                max="1.5"
+                                step="0.1"
+                                value={lightingSettings.particleDensity || 0.8}
+                                onChange={(e) => handleChange('particleDensity', Number(e.target.value))}
+                                className="w-full"
+                            />
+                        </div>
+
+                        {/* Preset-Buttons für volumetrische Effekte */}
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                onClick={() => {
+                                    handleChange('volumetricIntensity', 0.6);
+                                    handleChange('causticStrength', 0.5);
+                                    handleChange('particleDensity', 1.0);
+                                }}
+                                className="p-2 bg-purple-600/30 hover:bg-purple-600/50 rounded text-white text-xs transition-colors"
+                            >
+                                🌟 Spektakulär
+                            </button>
+                            <button
+                                onClick={() => {
+                                    handleChange('volumetricIntensity', 0.3);
+                                    handleChange('causticStrength', 0.2);
+                                    handleChange('particleDensity', 0.5);
+                                }}
+                                className="p-2 bg-blue-600/30 hover:bg-blue-600/50 rounded text-white text-xs transition-colors"
+                            >
+                                🌙 Subtil
+                            </button>
+                        </div>
+
+                        <div className="text-xs text-purple-200 bg-purple-900/20 rounded p-2">
+                            ✨ <strong>Volumetrische Effekte:</strong><br />
+                            • <strong>Lichtstrahlen:</strong> Sichtbare Lichtkegel durch die Vase<br />
+                            • <strong>Caustics:</strong> Realistische Lichtbrechungsmuster am Boden<br />
+                            • <strong>Lichtpartikel:</strong> Schwebende "Staub"-Teilchen im Licht<br />
+                            <strong>💡 Tipp:</strong> Diese Effekte sind nur im Lichtbrechungs-Modus sichtbar
                         </div>
                     </div>
                 </div>
@@ -223,7 +313,7 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                 </div>
             </div>
 
-            {/* Voreinstellungen - ERWEITERT mit Materialstärke */}
+            {/* Voreinstellungen - ERWEITERT mit Materialstärke und volumetrischen Effekten */}
             <div className="mt-6 pt-4 border-t border-white/20">
                 <h3 className="text-white font-medium mb-3">Beleuchtungs-Presets</h3>
                 <div className="grid grid-cols-2 gap-2">
@@ -237,7 +327,10 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                             ambientIntensity: 0.15,
                             animationSpeed: 1.0,
                             shadowIntensity: 0.7,
-                            materialThickness: 1.8  // Warmes, mittleres Glas
+                            materialThickness: 1.8,  // Warmes, mittleres Glas
+                            volumetricIntensity: 0.4,
+                            causticStrength: 0.3,
+                            particleDensity: 0.8
                         })}
                         className="p-2 bg-orange-600/30 hover:bg-orange-600/50 rounded text-white text-sm transition-colors"
                     >
@@ -253,7 +346,10 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                             ambientIntensity: 0.1,
                             animationSpeed: 0.5,
                             shadowIntensity: 0.9,
-                            materialThickness: 1.2  // Dünnes, klares Glas
+                            materialThickness: 1.2,  // Dünnes, klares Glas
+                            volumetricIntensity: 0.5,
+                            causticStrength: 0.4,
+                            particleDensity: 0.6
                         })}
                         className="p-2 bg-blue-600/30 hover:bg-blue-600/50 rounded text-white text-sm transition-colors"
                     >
@@ -269,7 +365,10 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                             ambientIntensity: 0.05,
                             animationSpeed: 1.5,
                             shadowIntensity: 1.0,
-                            materialThickness: 4.5  // Dickes, dramatisches Glas
+                            materialThickness: 4.5,  // Dickes, dramatisches Glas
+                            volumetricIntensity: 0.7,
+                            causticStrength: 0.6,
+                            particleDensity: 1.2
                         })}
                         className="p-2 bg-purple-600/30 hover:bg-purple-600/50 rounded text-white text-sm transition-colors"
                     >
@@ -285,7 +384,10 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                             ambientIntensity: 0.25,
                             animationSpeed: 0.3,
                             shadowIntensity: 0.5,
-                            materialThickness: 2.2  // Sanftes, ausgewogenes Glas
+                            materialThickness: 2.2,  // Sanftes, ausgewogenes Glas
+                            volumetricIntensity: 0.2,
+                            causticStrength: 0.2,
+                            particleDensity: 0.4
                         })}
                         className="p-2 bg-green-600/30 hover:bg-green-600/50 rounded text-white text-sm transition-colors"
                     >

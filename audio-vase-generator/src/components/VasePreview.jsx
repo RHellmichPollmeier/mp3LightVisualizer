@@ -49,9 +49,18 @@ const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = 
                             für lebendige Reflexionen und Brechungen
                         </div>
                         <div className="text-xs text-cyan-300 bg-cyan-900/20 rounded p-2">
-                            🧱 <strong>Materialstärke:</strong> Anpassbare Glasdicke für verschiedene Brechungseffekte
+                            🌟 <strong>Volumetrische Lichtstrahlen:</strong> Sichtbare Lichtkegel zeigen den Lichtweg durch die Vase
+                        </div>
+                        <div className="text-xs text-amber-300 bg-amber-900/20 rounded p-2">
+                            ✨ <strong>Caustic-Effekte:</strong> Realistische Lichtbrechungsmuster werden am Boden projiziert
                         </div>
                         <div className="text-xs text-emerald-300 bg-emerald-900/20 rounded p-2">
+                            💫 <strong>Lichtpartikel:</strong> Schwebende Teilchen machen Lichtstrahlen in der Luft sichtbar
+                        </div>
+                        <div className="text-xs text-rose-300 bg-rose-900/20 rounded p-2">
+                            🧱 <strong>Materialstärke:</strong> Anpassbare Glasdicke für verschiedene Brechungseffekte
+                        </div>
+                        <div className="text-xs text-indigo-300 bg-indigo-900/20 rounded p-2">
                             🌀 <strong>Wellenmuster:</strong> Spiralförmige Oberflächenrillen verstärken die Lichtbrechung
                         </div>
                         {baseGeometry && (

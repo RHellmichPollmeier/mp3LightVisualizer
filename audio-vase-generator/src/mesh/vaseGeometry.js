@@ -1,5 +1,5 @@
 // ============================================
-// src/mesh/vaseGeometry.js - VERBESSERTE BELEUCHTUNG
+// src/mesh/vaseGeometry.js - VERBESSERTE BELEUCHTUNG + VOLUMETRISCHE EFFEKTE
 // ============================================
 import * as THREE from 'three';
 import { PerlinNoise } from '../utils/perlinNoise.js';
@@ -240,6 +240,270 @@ export const createVaseMaterial = () => {
         emissive: 0xfff3e0,        // Sanftes warmes Leuchten
         emissiveIntensity: 0.05    // Subtiles Eigenleuchten
     });
+};
+
+// ============================================
+// NEUE VOLUMETRISCHE BELEUCHTUNGS-FUNKTIONEN
+// ============================================
+
+export const createVolumetricLighting = (vaseHeight = 20) => {
+    const volumetricGroup = new THREE.Group();
+
+    // ===== VOLUMETRISCHE LICHT-KEGEL =====
+    const coneGeometry = new THREE.ConeGeometry(8, 25, 8, 1, true); // Großer, offener Kegel
+
+    // Shader für volumetrische Beleuchtung
+    const volumetricMaterial = new THREE.ShaderMaterial({
+        transparent: true,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        uniforms: {
+            time: { value: 0 },
+            intensity: { value: 0.4 },
+            color: { value: new THREE.Color(0xffffff) }
+        },
+        vertexShader: `
+            varying vec3 vPosition;
+            varying vec3 vNormal;
+            void main() {
+                vPosition = position;
+                vNormal = normal;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform float time;
+            uniform float intensity;
+            uniform vec3 color;
+            varying vec3 vPosition;
+            varying vec3 vNormal;
+            
+            void main() {
+                // Entfernung vom Zentrum für radialen Gradient
+                float dist = length(vPosition.xz) / 8.0;
+                
+                // Höhen-basierte Transparenz (oben transparent, unten sichtbarer)
+                float heightFade = (vPosition.y + 12.5) / 25.0;
+                heightFade = clamp(heightFade, 0.0, 1.0);
+                
+                // Bewegende "Staub"-Effekte
+                float noise = sin(vPosition.x * 3.0 + time) * sin(vPosition.z * 3.0 + time * 0.7) * sin(vPosition.y * 2.0 + time * 0.5);
+                noise = (noise + 1.0) * 0.5; // 0-1 range
+                
+                // Kombiniere Effekte
+                float alpha = (1.0 - dist) * heightFade * noise * intensity;
+                alpha = clamp(alpha, 0.0, 0.6);
+                
+                gl_FragColor = vec4(color, alpha);
+            }
+        `
+    });
+
+    // Mehrere Lichtkegel für verschiedene Lichtquellen
+    const lightCones = [
+        { position: [0, -8, 0], color: 0xffffff, intensity: 0.5 },
+        { position: [3, -6, 0], color: 0xfff3e0, intensity: 0.3 },
+        { position: [-3, -6, 0], color: 0xe3f2fd, intensity: 0.3 },
+        { position: [0, -6, 3], color: 0xffecb3, intensity: 0.25 },
+        { position: [0, -6, -3], color: 0xf3e5f5, intensity: 0.25 }
+    ];
+
+    lightCones.forEach((cone, index) => {
+        const material = volumetricMaterial.clone();
+        material.uniforms.color.value = new THREE.Color(cone.color);
+        material.uniforms.intensity.value = cone.intensity;
+
+        const mesh = new THREE.Mesh(coneGeometry, material);
+        mesh.position.set(...cone.position);
+        mesh.rotation.x = Math.PI; // Kegel nach unten
+        volumetricGroup.add(mesh);
+    });
+
+    return volumetricGroup;
+};
+
+export const createCausticEffect = () => {
+    const causticGroup = new THREE.Group();
+
+    // ===== CAUSTIC PATTERN AM BODEN =====
+    const groundPatternGeometry = new THREE.PlaneGeometry(40, 40, 32, 32);
+
+    const causticMaterial = new THREE.ShaderMaterial({
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        uniforms: {
+            time: { value: 0 },
+            intensity: { value: 0.3 },
+            speed: { value: 1.0 }
+        },
+        vertexShader: `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform float time;
+            uniform float intensity;
+            uniform float speed;
+            varying vec2 vUv;
+            
+            // Caustic-ähnliche Welleninterferenz
+            float causticPattern(vec2 uv, float t) {
+                vec2 p = uv * 8.0;
+                
+                float wave1 = sin(length(p - vec2(sin(t * 0.3) * 2.0, cos(t * 0.4) * 2.0)) * 3.0 - t * speed);
+                float wave2 = sin(length(p - vec2(cos(t * 0.5) * 2.0, sin(t * 0.6) * 2.0)) * 3.0 - t * speed * 1.3);
+                float wave3 = sin(length(p - vec2(sin(t * 0.7) * 1.5, cos(t * 0.8) * 1.5)) * 4.0 - t * speed * 0.8);
+                
+                return (wave1 + wave2 + wave3) / 3.0;
+            }
+            
+            void main() {
+                vec2 centeredUv = vUv - 0.5;
+                float dist = length(centeredUv);
+                
+                // Caustic-Muster berechnen
+                float caustic = causticPattern(vUv, time);
+                caustic = pow(max(caustic, 0.0), 2.0); // Verstärke helle Bereiche
+                
+                // Radiale Abschwächung vom Zentrum
+                float radialFade = 1.0 - smoothstep(0.0, 0.4, dist);
+                
+                // Farbe basierend auf Position (regenbogenartig)
+                vec3 color = vec3(
+                    0.8 + 0.4 * sin(caustic * 3.0 + time * 0.5),
+                    0.7 + 0.3 * sin(caustic * 3.0 + time * 0.7 + 2.0),
+                    0.9 + 0.3 * sin(caustic * 3.0 + time * 0.3 + 4.0)
+                );
+                
+                float alpha = caustic * radialFade * intensity;
+                alpha = clamp(alpha, 0.0, 0.6);
+                
+                gl_FragColor = vec4(color, alpha);
+            }
+        `
+    });
+
+    const causticMesh = new THREE.Mesh(groundPatternGeometry, causticMaterial);
+    causticMesh.rotation.x = -Math.PI / 2; // Horizontal am Boden
+    causticMesh.position.y = -14.9; // Knapp über dem Boden
+    causticGroup.add(causticMesh);
+
+    // ===== PUNKT-LICHTPROJEKTIONEN =====
+    const spotProjections = [
+        { position: [0, -14.8, 0], color: 0xffffff, size: 6 },
+        { position: [4, -14.8, 0], color: 0xfff3e0, size: 3 },
+        { position: [-4, -14.8, 0], color: 0xe3f2fd, size: 3 },
+        { position: [0, -14.8, 4], color: 0xffecb3, size: 2.5 },
+        { position: [0, -14.8, -4], color: 0xf3e5f5, size: 2.5 }
+    ];
+
+    spotProjections.forEach((spot, index) => {
+        const spotGeometry = new THREE.CircleGeometry(spot.size, 16);
+        const spotMaterial = new THREE.MeshBasicMaterial({
+            color: spot.color,
+            transparent: true,
+            opacity: 0.3,
+            blending: THREE.AdditiveBlending
+        });
+
+        const spotMesh = new THREE.Mesh(spotGeometry, spotMaterial);
+        spotMesh.rotation.x = -Math.PI / 2;
+        spotMesh.position.set(...spot.position);
+        causticGroup.add(spotMesh);
+    });
+
+    return causticGroup;
+};
+
+export const createLightParticles = () => {
+    const particleGroup = new THREE.Group();
+
+    // ===== SCHWEBENDE LICHT-PARTIKEL =====
+    const particleCount = 200;
+    const particleGeometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const velocities = new Float32Array(particleCount * 3);
+    const sizes = new Float32Array(particleCount);
+
+    for (let i = 0; i < particleCount; i++) {
+        const i3 = i * 3;
+
+        // Partikel in Vase-Bereich verteilen
+        positions[i3] = (Math.random() - 0.5) * 20;     // x
+        positions[i3 + 1] = Math.random() * 15 - 10;    // y (-10 bis 5)
+        positions[i3 + 2] = (Math.random() - 0.5) * 20; // z
+
+        // Langsame, zufällige Bewegung
+        velocities[i3] = (Math.random() - 0.5) * 0.02;
+        velocities[i3 + 1] = Math.random() * 0.01 + 0.005; // Leicht nach oben
+        velocities[i3 + 2] = (Math.random() - 0.5) * 0.02;
+
+        sizes[i] = Math.random() * 0.5 + 0.1;
+    }
+
+    particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    particleGeometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
+    particleGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+    const particleMaterial = new THREE.ShaderMaterial({
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        uniforms: {
+            time: { value: 0 },
+            intensity: { value: 0.8 }
+        },
+        vertexShader: `
+            attribute float size;
+            attribute vec3 velocity;
+            uniform float time;
+            varying float vAlpha;
+            
+            void main() {
+                vec3 pos = position;
+                
+                // Partikel bewegen
+                pos += velocity * time * 50.0;
+                
+                // Zurücksetzen wenn zu hoch
+                if (pos.y > 8.0) {
+                    pos.y = -12.0;
+                }
+                
+                // Alpha basierend auf Höhe
+                vAlpha = 1.0 - smoothstep(-5.0, 5.0, pos.y);
+                
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                gl_PointSize = size * 100.0 / length(gl_Position.xyz);
+            }
+        `,
+        fragmentShader: `
+            uniform float intensity;
+            varying float vAlpha;
+            
+            void main() {
+                // Runde Partikel
+                vec2 center = gl_PointCoord - 0.5;
+                float dist = length(center);
+                
+                if (dist > 0.5) discard;
+                
+                float alpha = (1.0 - dist * 2.0) * vAlpha * intensity;
+                
+                gl_FragColor = vec4(1.0, 0.95, 0.8, alpha);
+            }
+        `
+    });
+
+    const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+    particleGroup.add(particleSystem);
+
+    return particleGroup;
 };
 
 export const createInnerLight = (vaseHeight = 20) => {

@@ -62,7 +62,11 @@ const App = () => {
     ambientIntensity: 0.15,
     animationSpeed: 1.0,
     shadowIntensity: 0.7,
-    materialThickness: 1.5  // NEUE MATERIALSTÄRKE
+    materialThickness: 1.5,  // NEUE MATERIALSTÄRKE
+    // NEUE VOLUMETRISCHE PARAMETER
+    volumetricIntensity: 0.4,
+    causticStrength: 0.3,
+    particleDensity: 0.8
   });
 
   const perlinNoise = useRef(new PerlinNoise());
@@ -160,7 +164,7 @@ const App = () => {
 
                 <div className="text-xs text-blue-200 space-y-1">
                   <p><strong>Hell-Modus:</strong> Normale Beleuchtung, perfekt zum Betrachten der Vasenform</p>
-                  <p><strong>Lichtbrechungs-Modus:</strong> Dunkle Szene mit Bodenlichtern für Glaseffekte</p>
+                  <p><strong>Lichtbrechungs-Modus:</strong> Dunkle Szene mit volumetrischen Lichteffekten</p>
                 </div>
               </div>
             </div>
@@ -204,19 +208,23 @@ const App = () => {
         </div>
       </div>
 
-      {/* Info - Aktualisiert */}
+      {/* Info - Aktualisiert mit volumetrischen Effekten */}
       <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-        <h3 className="text-lg font-semibold text-white mb-3">✨ Vollständige Audio-Vase mit STL-Sockel</h3>
+        <h3 className="text-lg font-semibold text-white mb-3">✨ Vollständige Audio-Vase mit Volumetrischen Lichteffekten</h3>
         <div className="text-blue-200 space-y-2">
           <p>🔆 <strong>Hell-Modus:</strong> Optimale Beleuchtung zum Betrachten und Anpassen der Vasenform</p>
-          <p>🌈 <strong>Lichtbrechungs-Modus:</strong> Spektakuläre Lichteffekte mit Bodenbeleuchtung</p>
+          <p>🌈 <strong>Lichtbrechungs-Modus:</strong> Spektakuläre Lichteffekte mit volumetrischen Lichtstrahlen</p>
+          <p>🌟 <strong>Volumetrische Lichtstrahlen:</strong> Sichtbare Lichtkegel zeigen den Lichtweg durch die Vase</p>
+          <p>✨ <strong>Caustic-Effekte:</strong> Realistische Lichtbrechungsmuster am Boden wie in echten Glasvasen</p>
+          <p>💫 <strong>Lichtpartikel:</strong> Schwebende "Staub"-Teilchen machen Lichtstrahlen in der Luft sichtbar</p>
           <p>🏺 <strong>STL-Sockel:</strong> Perfekt passender Sockel - Vase sitzt exakt auf der Oberseite</p>
           <p>🌀 <strong>Spiralwellen:</strong> Elegante gedrehte Rillen wie in handwerklichen Glasvasen</p>
           <p>🧱 <strong>Materialstärke:</strong> Von hauchzartem 0.5mm bis zu massiven 8mm Glas</p>
           <p>💎 Realistische Lichtbrechung mit Environment-Mapping und mehreren Lichtquellen</p>
           <p>🎛️ Vollständige Kontrolle über Brechungsindex, Transmission und Glasdicke</p>
           <p>🎨 4 Materialstile + 4 Oberflächenmuster + STL-Sockel für einzigartige Designs</p>
-          <p>🔄 Echtzeit-Animation der Lichtquellen für lebendige Brechungseffekte</p>
+          <p>🔄 Echtzeit-Animation aller Lichteffekte für lebendige Brechungseffekte</p>
+          <p>🌊 Physikalisch korrekte Caustics simulieren echte Glaslichtbrechung</p>
         </div>
       </div>
     </Layout>
