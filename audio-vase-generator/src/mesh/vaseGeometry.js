@@ -16,14 +16,22 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
 
     console.log('🏺 Organische Vase-Generierung mit 2D-Spline-Glättung gestartet...');
 
-    // Druckparameter extrahieren oder Defaults setzen
+    // Audio-Daten normalisieren
+    const maxAmplitude = Math.max(...audioData.map(d => d.amplitude));
+    const normalizedAudio = audioData.map(d => ({
+        ...d,
+        amplitude: d.amplitude / (maxAmplitude || 1),
+        frequency: d.frequency / 22050
+    }));
+
+    // Druckparameter extrahieren oder Defaults setzen - AUDIO-FREUNDLICH
     const printParams = {
         enabled: printOptimization?.enabled || false,
         maxOverhang: printOptimization?.maxOverhang || 45,
         maxSpikeHeight: printOptimization?.spikeThreshold || 2.0,
-        audioPreservation: printOptimization?.audioPreservation || 0.7,
-        smoothingStrength: printOptimization?.smoothingStrength || 0.3,
-        contourSmoothingPoints: printOptimization?.contourPoints || 8 // NEUE PARAMETER
+        audioPreservation: printOptimization?.audioPreservation || 0.85, // HÖHER: mehr Audio-Details erhalten
+        smoothingStrength: printOptimization?.smoothingStrength || 0.15, // NIEDRIGER: weniger Glättung
+        contourSmoothingPoints: Math.max(16, Math.floor(normalizedAudio.length * 0.3)) // MEHR PUNKTE basierend auf Audio-Länge
     };
 
     if (printParams.enabled) {
@@ -36,26 +44,19 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
     const geometry = new THREE.CylinderGeometry(topRadius, baseRadius, height, segments, heightSegments, true);
     const positions = geometry.attributes.position.array;
 
-    // Audio-Daten mehrfach glätten für organische Übergänge
-    let smoothedAudio = smoothAudioData(audioData, smoothing);
-    smoothedAudio = smoothAudioData(smoothedAudio, smoothing * 0.5);
-
-    // Audio-Daten normalisieren
-    const maxAmplitude = Math.max(...smoothedAudio.map(d => d.amplitude));
-    const normalizedAudio = smoothedAudio.map(d => ({
-        ...d,
-        amplitude: d.amplitude / (maxAmplitude || 1),
-        frequency: d.frequency / 22050
-    }));
-
-    // ===== NEUE 2D-KONTUR-GLÄTTUNG =====
+    // ===== NEUE 2D-KONTUR-GLÄTTUNG - AUDIO-ERHALTEND =====
     const smoothedContour = printParams.enabled ?
         createSmoothedContour(normalizedAudio, printParams.contourSmoothingPoints, printParams.audioPreservation) :
         normalizedAudio;
 
-    console.log(`📈 Kontur: ${normalizedAudio.length} → ${smoothedContour.length} Punkte (${printParams.enabled ? 'Spline-geglättet' : 'Original'})`);
+    // Audio-Daten nur minimal glätten für organische Übergänge - AUCH bei 3D-Druck
+    let workingAudio = printParams.enabled ?
+        smoothedContour : // Bereits intelligent geglättet
+        smoothAudioData(smoothAudioData(normalizedAudio, smoothing), smoothing * 0.5); // Original-Glättung
 
-    // ===== ORGANISCHE KONTUR ANWENDEN =====
+    console.log(`📈 Kontur: ${normalizedAudio.length} → ${workingAudio.length} Punkte (${printParams.enabled ? 'Smart geglättet' : 'Original'})`);
+    console.log(`🎵 Audio-Erhaltung: ${Math.round(printParams.audioPreservation * 100)}%`);
+
     const maxRadiusChange = printParams.enabled ?
         Math.min(amplification, printParams.maxSpikeHeight / 10) : // Begrenzt auf Spike-Schwellwert
         amplification;
@@ -76,7 +77,7 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
         const currentRadius = Math.sqrt(x * x + z * z);
 
         // ===== ORGANISCHE AUDIO-INTERPOLATION =====
-        const audioValue = interpolateAudioData(smoothedContour, normalizedY);
+        const audioValue = interpolateAudioData(workingAudio, normalizedY);
         const amplitude = audioValue.amplitude;
         const frequency = audioValue.frequency;
 
@@ -125,14 +126,13 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
         // 5. GESAMTE RADIUS-MODIFIKATION BERECHNEN
         let totalRadiusChange = amplitudeEffect + combinedNoise + frequencyWave + waveEffect;
 
-        // ===== 3D-DRUCK ÜBERHANG-PRÜFUNG UND -KORREKTUR =====
+        // ===== 3D-DRUCK ÜBERHANG-PRÜFUNG UND -KORREKTUR - AUDIO-SCHONEND =====
         if (printParams.enabled) {
             // Benachbarte Y-Levels für Überhang-Berechnung
             const prevY = normalizedY - (1 / heightSegments);
-            const nextY = normalizedY + (1 / heightSegments);
 
             if (prevY >= 0) {
-                const prevAudioValue = interpolateAudioData(smoothedContour, prevY);
+                const prevAudioValue = interpolateAudioData(workingAudio, prevY);
                 const prevAmplitudeEffect = Math.pow(prevAudioValue.amplitude, 1.2) * maxRadiusChange;
 
                 // Radius-Änderung zwischen Levels berechnen
@@ -143,12 +143,21 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
                 const overhangAngle = Math.atan(Math.abs(radiusGradient) / heightStep);
 
                 if (overhangAngle > maxOverhangRad) {
-                    // Radius-Änderung begrenzen um Überhang zu vermeiden
-                    const maxAllowedRadiusChange = Math.tan(maxOverhangRad) * heightStep;
-                    const sign = radiusGradient >= 0 ? 1 : -1;
+                    // NUR bei extremen Überhängen korrigieren - Audio-Charakteristik erhalten
+                    const severity = overhangAngle / maxOverhangRad; // 1.0 = kritisch, höher = sehr kritisch
 
-                    totalRadiusChange = prevAmplitudeEffect + (maxAllowedRadiusChange * sign * 0.8); // 80% Sicherheit
-                    overhangWarnings++;
+                    if (severity > 1.3) { // Nur bei wirklich kritischen Überhängen (>30% über Limit)
+                        const maxAllowedRadiusChange = Math.tan(maxOverhangRad) * heightStep;
+                        const sign = radiusGradient >= 0 ? 1 : -1;
+
+                        // Sanfte Korrektur: Audio-Wert teilweise erhalten
+                        const correctionStrength = Math.min(0.6, (severity - 1.3) / 1.0); // Max 60% Korrektur
+                        const correctedChange = prevAmplitudeEffect + (maxAllowedRadiusChange * sign * 0.9);
+
+                        totalRadiusChange = totalRadiusChange * (1 - correctionStrength) +
+                            correctedChange * correctionStrength;
+                        overhangWarnings++;
+                    }
                 }
             }
         }
@@ -172,15 +181,17 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
         positions[i + 2] = (z / currentRadius) * newRadius;
     }
 
-    // ===== DRUCKFREUNDLICHE NACHBEARBEITUNG =====
+    // ===== DRUCKFREUNDLICHE NACHBEARBEITUNG - AUDIO-SCHONEND =====
     if (printParams.enabled) {
-        console.log(`⚠️ Überhang-Korrekturen: ${overhangWarnings}`);
+        console.log(`⚠️ Überhang-Korrekturen: ${overhangWarnings} (nur extreme Fälle)`);
 
-        // SANFTE GLÄTTUNG für bessere Druckbarkeit
+        // NUR MINIMALE GLÄTTUNG für bessere Druckbarkeit
         smoothGeometryForPrinting(positions, segments, heightSegments, printParams);
 
-        // SPIKE-DETECTION UND -REDUKTION
+        // NUR EXTREME SPIKE-REDUCTION 
         reduceSharpSpikes(positions, segments, heightSegments, printParams);
+
+        console.log(`🎵 Audio-Charakteristik: ${Math.round(printParams.audioPreservation * 100)}% erhalten`);
     } else {
         // Standard-Glättung für organische Oberfläche
         smoothGeometry(positions, segments, heightSegments, 2);
@@ -199,72 +210,92 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
 // ============================================
 
 /**
- * Erstellt eine organisch geglättete Kontur aus wenigen Schlüsselpunkten
+ * Erstellt eine minimal geglättete Kontur die Audio-Charakteristiken erhält
  */
-const createSmoothedContour = (audioData, controlPoints = 8, audioPreservation = 0.7) => {
-    console.log(`🌊 Erstelle organische Kontur mit ${controlPoints} Stützpunkten...`);
+const createSmoothedContour = (audioData, controlPoints = 16, audioPreservation = 0.85) => {
+    console.log(`🌊 Erstelle Audio-erhaltende Kontur mit ${controlPoints} Stützpunkten...`);
 
-    // ===== SCHRITT 1: Schlüsselpunkte aus Audio-Daten extrahieren =====
-    const keyPoints = extractKeyPoints(audioData, controlPoints, audioPreservation);
+    // Weniger aggressiv: Verwende mehr Schlüsselpunkte
+    const adaptivePoints = Math.max(controlPoints, Math.floor(audioData.length * 0.15)); // Min 15% der Original-Punkte
 
-    // ===== SCHRITT 2: Spline-Interpolation zwischen Schlüsselpunkten =====
-    const smoothedPoints = interpolateSpline(keyPoints, audioData.length);
+    // ===== SCHRITT 1: Intelligente Schlüsselpunkte aus Audio-Daten extrahieren =====
+    const keyPoints = extractKeyPointsPreservative(audioData, adaptivePoints, audioPreservation);
 
-    // ===== SCHRITT 3: Audio-Charakteristiken erhalten =====
+    // ===== SCHRITT 2: Sanfte Spline-Interpolation zwischen Schlüsselpunkten =====
+    const smoothedPoints = interpolateSplinePreservative(keyPoints, audioData.length);
+
+    // ===== SCHRITT 3: Audio-Charakteristiken STARK erhalten =====
     const contourWithAudio = blendWithOriginalAudio(smoothedPoints, audioData, audioPreservation);
 
-    console.log(`📈 Organische Kontur erstellt: ${keyPoints.length} Schlüssel → ${contourWithAudio.length} Punkte`);
+    console.log(`📈 Audio-erhaltende Kontur: ${keyPoints.length} Schlüssel → ${contourWithAudio.length} Punkte`);
+    console.log(`🎵 Audio-Treue: ${Math.round(audioPreservation * 100)}% (sehr hoch)`);
     return contourWithAudio;
 };
 
 /**
- * Extrahiert wichtige Wendepunkte aus den Audio-Daten
+ * Extrahiert wichtige Wendepunkte aus den Audio-Daten - AUDIO-ERHALTEND
  */
-const extractKeyPoints = (audioData, numPoints, preservation) => {
+const extractKeyPointsPreservative = (audioData, numPoints, preservation) => {
     const keyPoints = [];
-    const step = audioData.length / (numPoints - 1);
 
-    for (let i = 0; i < numPoints; i++) {
-        const index = Math.round(i * step);
-        const actualIndex = Math.min(index, audioData.length - 1);
-
-        // Lokalen Durchschnitt um diesen Punkt berechnen
-        const windowSize = Math.max(1, Math.floor(audioData.length / (numPoints * 2)));
-        const startIdx = Math.max(0, actualIndex - windowSize);
-        const endIdx = Math.min(audioData.length - 1, actualIndex + windowSize);
-
-        let avgAmplitude = 0;
-        let avgFrequency = 0;
-        let count = 0;
-
-        // Gewichteter Durchschnitt mit mehr Gewicht auf Audio-Peaks
-        for (let j = startIdx; j <= endIdx; j++) {
-            const weight = 1 + audioData[j].amplitude * preservation; // Höhere Amplituden bekommen mehr Gewicht
-            avgAmplitude += audioData[j].amplitude * weight;
-            avgFrequency += audioData[j].frequency * weight;
-            count += weight;
+    if (numPoints >= audioData.length * 0.8) {
+        // Fast alle Punkte beibehalten - nur minimale Glättung
+        const step = audioData.length / numPoints;
+        for (let i = 0; i < numPoints; i++) {
+            const index = Math.min(Math.floor(i * step), audioData.length - 1);
+            keyPoints.push({
+                position: index / (audioData.length - 1),
+                amplitude: audioData[index].amplitude,
+                frequency: audioData[index].frequency,
+                originalIndex: index
+            });
         }
+    } else {
+        // Intelligente Auswahl: Peaks und wichtige Wendepunkte bevorzugen
+        const step = audioData.length / (numPoints - 1);
 
-        keyPoints.push({
-            position: actualIndex / (audioData.length - 1), // 0-1 normalisiert
-            amplitude: avgAmplitude / count,
-            frequency: avgFrequency / count,
-            originalIndex: actualIndex
-        });
+        for (let i = 0; i < numPoints; i++) {
+            const centerIndex = Math.round(i * step);
+            const actualIndex = Math.min(centerIndex, audioData.length - 1);
+
+            // Kleineres Fenster für bessere Audio-Erhaltung
+            const windowSize = Math.max(1, Math.floor(audioData.length / (numPoints * 4))); // Kleineres Fenster
+            const startIdx = Math.max(0, actualIndex - windowSize);
+            const endIdx = Math.min(audioData.length - 1, actualIndex + windowSize);
+
+            // Suche nach lokalem Maximum in diesem Bereich (Audio-Peaks bevorzugen)
+            let bestIndex = actualIndex;
+            let bestScore = audioData[actualIndex].amplitude;
+
+            for (let j = startIdx; j <= endIdx; j++) {
+                const score = audioData[j].amplitude + audioData[j].frequency * 0.1; // Peaks bevorzugen
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestIndex = j;
+                }
+            }
+
+            keyPoints.push({
+                position: bestIndex / (audioData.length - 1),
+                amplitude: audioData[bestIndex].amplitude,
+                frequency: audioData[bestIndex].frequency,
+                originalIndex: bestIndex
+            });
+        }
     }
 
     // Erste und letzte Punkte fest setzen für saubere Enden
     keyPoints[0].position = 0;
     keyPoints[keyPoints.length - 1].position = 1;
 
-    console.log(`🎯 ${keyPoints.length} Schlüsselpunkte extrahiert`);
+    console.log(`🎯 ${keyPoints.length} Audio-getreue Schlüsselpunkte extrahiert`);
     return keyPoints;
 };
 
 /**
- * Catmull-Rom Spline Interpolation für organische Kurven
+ * Sanfte Catmull-Rom Spline Interpolation für Audio-erhaltende Kurven
  */
-const interpolateSpline = (keyPoints, targetLength) => {
+const interpolateSplinePreservative = (keyPoints, targetLength) => {
     const interpolatedPoints = [];
 
     for (let i = 0; i < targetLength; i++) {
@@ -289,13 +320,15 @@ const interpolateSpline = (keyPoints, targetLength) => {
         const segmentLength = p2.position - p1.position;
         const localT = segmentLength > 0 ? (t - p1.position) / segmentLength : 0;
 
-        // Catmull-Rom Interpolation
-        const amplitude = catmullRomInterpolate(
-            p0.amplitude, p1.amplitude, p2.amplitude, p3.amplitude, localT
+        // Sanfte Catmull-Rom Interpolation - weniger aggressiv
+        const tension = 0.3; // Reduzierte Spannung für sanftere Kurven
+
+        const amplitude = catmullRomInterpolateGentle(
+            p0.amplitude, p1.amplitude, p2.amplitude, p3.amplitude, localT, tension
         );
 
-        const frequency = catmullRomInterpolate(
-            p0.frequency, p1.frequency, p2.frequency, p3.frequency, localT
+        const frequency = catmullRomInterpolateGentle(
+            p0.frequency, p1.frequency, p2.frequency, p3.frequency, localT, tension
         );
 
         interpolatedPoints.push({
@@ -305,12 +338,28 @@ const interpolateSpline = (keyPoints, targetLength) => {
         });
     }
 
-    console.log(`🌊 Spline-Interpolation abgeschlossen: ${interpolatedPoints.length} Punkte`);
+    console.log(`🌊 Sanfte Spline-Interpolation abgeschlossen: ${interpolatedPoints.length} Punkte`);
     return interpolatedPoints;
 };
 
 /**
- * Catmull-Rom Spline Interpolation zwischen 4 Punkten
+ * Sanfte Catmull-Rom Spline Interpolation zwischen 4 Punkten
+ */
+const catmullRomInterpolateGentle = (p0, p1, p2, p3, t, tension = 0.5) => {
+    const t2 = t * t;
+    const t3 = t2 * t;
+
+    // Reduzierte Tension für sanftere Kurven
+    return tension * (
+        (2 * p1) +
+        (-p0 + p2) * t +
+        (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+        (-p0 + 3 * p1 - 3 * p2 + p3) * t3
+    ) + (1 - tension) * (p1 + (p2 - p1) * t); // Linear blend für Sanftheit
+};
+
+/**
+ * Catmull-Rom Spline Interpolation zwischen 4 Punkten - Original
  */
 const catmullRomInterpolate = (p0, p1, p2, p3, t) => {
     const t2 = t * t;
@@ -353,9 +402,10 @@ const blendWithOriginalAudio = (smoothedPoints, originalAudio, preservation) => 
 // ===== DRUCKFREUNDLICHE GLÄTTUNGS-FUNKTIONEN =====
 
 const smoothGeometryForPrinting = (positions, segments, heightSegments, printParams) => {
-    console.log('🔧 Anwenden der druckfreundlichen Glättung...');
+    console.log('🔧 Anwenden der minimalen druckfreundlichen Glättung...');
 
-    const iterations = Math.max(1, Math.floor(printParams.smoothingStrength * 5));
+    // DEUTLICH weniger Iterationen
+    const iterations = Math.max(1, Math.floor(printParams.smoothingStrength * 2)); // Max 2 statt 5
     const preservationFactor = printParams.audioPreservation;
 
     for (let iter = 0; iter < iterations; iter++) {
@@ -373,19 +423,13 @@ const smoothGeometryForPrinting = (positions, segments, heightSegments, printPar
                 // Nachbar-Indices sammeln
                 const neighbors = [];
 
-                // Vertikale Nachbarn
+                // Nur direkte Nachbarn (weniger aggressiv)
                 if (h > 0) neighbors.push(((h - 1) * (segments + 1) + s) * 3);
                 if (h < heightSegments - 1) neighbors.push(((h + 1) * (segments + 1) + s) * 3);
 
-                // Horizontale Nachbarn
-                const leftS = (s - 1 + segments) % segments;
-                const rightS = (s + 1) % segments;
-                neighbors.push((h * (segments + 1) + leftS) * 3);
-                neighbors.push((h * (segments + 1) + rightS) * 3);
-
                 if (neighbors.length === 0) continue;
 
-                // Durchschnitts-Position berechnen
+                // Durchschnitts-Position berechnen (nur vertikal)
                 let avgX = 0, avgY = 0, avgZ = 0;
                 for (let nIdx of neighbors) {
                     avgX += positions[nIdx];
@@ -396,17 +440,17 @@ const smoothGeometryForPrinting = (positions, segments, heightSegments, printPar
                 avgY /= neighbors.length;
                 avgZ /= neighbors.length;
 
-                // Audio-erhaltende Glättung
-                const smoothingStrength = 0.2; // Sanfte Glättung
+                // SEHR sanfte Glättung - Audio stark erhalten
+                const smoothingStrength = 0.1; // Sehr sanft
 
                 newPositions[currentIndex] =
                     positions[currentIndex] * preservationFactor +
                     (positions[currentIndex] * (1 - smoothingStrength) + avgX * smoothingStrength) * (1 - preservationFactor);
 
-                // Y weniger glätten um Vasenhöhe zu erhalten
+                // Y noch weniger glätten um Vasenhöhe zu erhalten
                 newPositions[currentIndex + 1] =
-                    positions[currentIndex + 1] * 0.9 +
-                    (positions[currentIndex + 1] * (1 - smoothingStrength * 0.5) + avgY * smoothingStrength * 0.5) * 0.1;
+                    positions[currentIndex + 1] * 0.95 +
+                    (positions[currentIndex + 1] * (1 - smoothingStrength * 0.3) + avgY * smoothingStrength * 0.3) * 0.05;
 
                 newPositions[currentIndex + 2] =
                     positions[currentIndex + 2] * preservationFactor +
@@ -422,7 +466,7 @@ const smoothGeometryForPrinting = (positions, segments, heightSegments, printPar
 };
 
 const reduceSharpSpikes = (positions, segments, heightSegments, printParams) => {
-    console.log('✂️ Reduzierung scharfer Spitzen...');
+    console.log('✂️ Reduzierung nur extremer Spitzen...');
 
     const vertexCount = positions.length / 3;
     const maxSpikeHeight = printParams.maxSpikeHeight / 10; // mm zu cm
@@ -461,10 +505,11 @@ const reduceSharpSpikes = (positions, segments, heightSegments, printParams) => 
             // Spike-Detection: Radius-Abweichung
             const radiusDiff = Math.abs(currentRadius - avgRadius);
 
-            if (radiusDiff > maxSpikeHeight) {
-                // Spike reduzieren
-                const reductionFactor = maxSpikeHeight / radiusDiff * 0.8; // 80% des Limits
-                const targetRadius = avgRadius + (currentRadius - avgRadius) * reductionFactor;
+            // NUR extreme Spitzen korrigieren (doppelte Schwelle)
+            if (radiusDiff > maxSpikeHeight * 2.0) {
+                // Sanfte Spike-Reduktion - Audio teilweise erhalten
+                const reductionStrength = 0.5; // Nur 50% Reduktion
+                const targetRadius = avgRadius + (currentRadius - avgRadius) * reductionStrength;
 
                 if (currentRadius > 0) {
                     const scale = targetRadius / currentRadius;
@@ -476,7 +521,7 @@ const reduceSharpSpikes = (positions, segments, heightSegments, printParams) => 
         }
     }
 
-    console.log(`✂️ ${spikesReduced} Spitzen reduziert`);
+    console.log(`✂️ ${spikesReduced} extreme Spitzen reduziert (Audio-Details erhalten)`);
 };
 
 // ===== HILFSFUNKTIONEN (unverändert) =====

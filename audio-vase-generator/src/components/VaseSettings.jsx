@@ -37,7 +37,8 @@ const VaseSettings = ({ settings, onChange }) => {
                         maxOverhang: 30,
                         audioPreservation: 0.3,
                         smoothingStrength: 0.6,
-                        spikeThreshold: 1.5
+                        spikeThreshold: 1.5,
+                        contourPoints: 6  // SEHR ORGANISCH
                     }
                 }));
                 break;
@@ -49,7 +50,8 @@ const VaseSettings = ({ settings, onChange }) => {
                         maxOverhang: 50,
                         audioPreservation: 0.9,
                         smoothingStrength: 0.2,
-                        spikeThreshold: 3.0
+                        spikeThreshold: 3.0,
+                        contourPoints: 12  // AUDIO-DETAILLIERT
                     }
                 }));
                 break;
@@ -61,7 +63,8 @@ const VaseSettings = ({ settings, onChange }) => {
                         maxOverhang: 45,
                         audioPreservation: 0.7,
                         smoothingStrength: 0.3,
-                        spikeThreshold: 2.0
+                        spikeThreshold: 2.0,
+                        contourPoints: 8  // AUSGEWOGEN
                     }
                 }));
         }
@@ -191,6 +194,26 @@ const VaseSettings = ({ settings, onChange }) => {
                                     />
                                 </div>
 
+                                {/* NEUER PARAMETER: Kontur-Stützpunkte */}
+                                <div>
+                                    <label className="block text-white text-sm mb-2">
+                                        Kontur-Stützpunkte: {settings.printOptimization?.contourPoints || 8}
+                                        <span className="text-xs text-blue-300 ml-2">
+                                            ({(settings.printOptimization?.contourPoints || 8) <= 6 ? 'Sehr organisch' :
+                                                (settings.printOptimization?.contourPoints || 8) <= 10 ? 'Ausgewogen' : 'Audio-detailliert'})
+                                        </span>
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="4"
+                                        max="16"
+                                        step="2"
+                                        value={settings.printOptimization?.contourPoints || 8}
+                                        onChange={(e) => handlePrintOptimizationChange('contourPoints', Number(e.target.value))}
+                                        className="w-full"
+                                    />
+                                </div>
+
                                 {/* Smart Presets */}
                                 <div className="grid grid-cols-3 gap-2 mt-4">
                                     <button
@@ -200,26 +223,28 @@ const VaseSettings = ({ settings, onChange }) => {
                                         🎯 Perfekt<br />Druckbar
                                     </button>
                                     <button
-                                        onClick={() => applyPrintOptimizationPreset('audio')}
-                                        className="p-2 bg-purple-600/30 hover:bg-purple-600/50 rounded text-white text-xs transition-colors"
-                                    >
-                                        🎵 Audio<br />Priorität
-                                    </button>
-                                    <button
                                         onClick={() => applyPrintOptimizationPreset('default')}
                                         className="p-2 bg-blue-600/30 hover:bg-blue-600/50 rounded text-white text-xs transition-colors"
                                     >
                                         ⚖️ Aus-<br />gewogen
                                     </button>
+                                    <button
+                                        onClick={() => applyPrintOptimizationPreset('audio')}
+                                        className="p-2 bg-purple-600/30 hover:bg-purple-600/50 rounded text-white text-xs transition-colors"
+                                    >
+                                        🎵 Audio<br />Priorität
+                                    </button>
                                 </div>
 
                                 {/* Info zur Live-Optimierung */}
                                 <div className="text-xs text-blue-200 bg-blue-900/20 rounded p-2">
-                                    <p><strong>🚀 Live-Optimierung während Generierung:</strong></p>
+                                    <p><strong>🌊 Organische Kontur-Glättung:</strong></p>
+                                    <p>• <strong>4-6 Stützpunkte:</strong> Sehr organisch, keramikartig, perfekt druckbar</p>
+                                    <p>• <strong>8-10 Stützpunkte:</strong> Ausgewogene Balance zwischen Form und Audio</p>
+                                    <p>• <strong>12+ Stützpunkte:</strong> Audio-Details erhalten, musikalischer Charakter</p>
+                                    <p>• <strong>Catmull-Rom Splines:</strong> Weiche Übergänge wie handwerklich gefertigt</p>
+                                    <p>• <strong>Audio-Erhaltung:</strong> Musikalische Essenz bleibt erhalten</p>
                                     <p>• <strong>Echtzeit:</strong> Sofortige Sichtbarkeit in 3D-Vorschau</p>
-                                    <p>• <strong>Interaktiv:</strong> Parameter ändern → neue optimierte Vase</p>
-                                    <p>• <strong>Intelligenz:</strong> Überhänge & Spitzen automatisch korrigiert</p>
-                                    <p>• <strong>Audio-Erhaltung:</strong> Musikalischer Charakter bleibt erhalten</p>
                                 </div>
                             </>
                         )}

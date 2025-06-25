@@ -53,6 +53,15 @@ const App = () => {
       frequency: 12,         // Anzahl der Wellen
       spiralTurns: 3.0,      // Spiralwindungen (nur für Spiral-Typ)
       phase: 0               // Phasenverschiebung in Grad
+    },
+    // 3D-DRUCK OPTIMIERUNG - ERWEITERT mit Kontur-Glättung
+    printOptimization: {
+      enabled: true,              // Standardmäßig aktiviert für bessere UX
+      maxOverhang: 45,            // Grad
+      audioPreservation: 0.7,     // 70% Audio-Charakter erhalten
+      smoothingStrength: 0.3,     // 30% Glättung
+      spikeThreshold: 2.0,        // 2mm max Spitzen
+      contourPoints: 8            // 8 Stützpunkte für ausgewogene Organik
     }
   });
 
@@ -264,10 +273,13 @@ const App = () => {
         </div>
       </div>
 
-      {/* Info - Aktualisiert mit volumetrischen Effekten */}
+      {/* Info - Aktualisiert mit volumetrischen Effekten und organischer Kontur-Glättung */}
       <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-        <h3 className="text-lg font-semibold text-white mb-3">✨ Vollständige Audio-Vase mit Volumetrischen Lichteffekten</h3>
+        <h3 className="text-lg font-semibold text-white mb-3">✨ Vollständige Audio-Vase mit Organischer Kontur-Glättung</h3>
         <div className="text-blue-200 space-y-2">
+          <p>🌊 <strong>Organische Kontur-Glättung:</strong> Catmull-Rom Splines für keramikartige, handwerkliche Formen</p>
+          <p>🎯 <strong>3 Optimierungs-Modi:</strong> Perfekt Druckbar, Ausgewogen, Audio Priorität</p>
+          <p>🏺 <strong>Handwerkliche Ästhetik:</strong> Fließende Übergänge wie von Meister-Töpfern gefertigt</p>
           <p>🔆 <strong>Hell-Modus:</strong> Optimale Beleuchtung zum Betrachten und Anpassen der Vasenform</p>
           <p>🌈 <strong>Lichtbrechungs-Modus:</strong> Spektakuläre Lichteffekte mit volumetrischen Lichtstrahlen</p>
           <p>🌟 <strong>Volumetrische Lichtstrahlen:</strong> Sichtbare Lichtkegel zeigen den Lichtweg durch die Vase</p>
@@ -277,6 +289,8 @@ const App = () => {
           <p>🌀 <strong>Spiralwellen:</strong> Elegante gedrehte Rillen wie in handwerklichen Glasvasen</p>
           <p>🧱 <strong>Materialstärke:</strong> Von hauchzartem 0.5mm bis zu massiven 8mm Glas</p>
           <p>🎯 <strong>Y-Position:</strong> Präzise Kontrolle der Innenlicht-Position von Boden bis Spitze</p>
+          <p>🎨 <strong>Kontur-Stützpunkte:</strong> 4-16 Punkte für organische Spline-Interpolation</p>
+          <p>⚖️ <strong>Audio-Erhaltung:</strong> 30%-90% Balance zwischen Glätte und musikalischem Charakter</p>
           <p>💎 Realistische Lichtbrechung mit Environment-Mapping und mehreren Lichtquellen</p>
           <p>🎛️ Vollständige Kontrolle über Brechungsindex, Transmission und Glasdicke</p>
           <p>🎨 4 Materialstile + 4 Oberflächenmuster + STL-Sockel für einzigartige Designs</p>
@@ -284,6 +298,7 @@ const App = () => {
           <p>🌊 Physikalisch korrekte Caustics simulieren echte Glaslichtbrechung</p>
           <p>📱 <strong>Neues Layout:</strong> 30% Settings-Panel, 70% 3D-Vorschau für optimale Bedienung</p>
           <p>🔧 <strong>Getrennte Tabs:</strong> Upload, Licht-Einstellungen und Vase-Einstellungen für bessere Organisation</p>
+          <p>🖨️ <strong>3D-Druck Ready:</strong> Automatische Überhang-Korrektur und Support-freie organische Formen</p>
         </div>
       </div>
     </Layout>
