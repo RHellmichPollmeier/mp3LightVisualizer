@@ -1,5 +1,5 @@
 // ============================================
-// src/mesh/vaseGeometry.js - LIVE 3D-DRUCK OPTIMIERUNG + VOLUMETRISCHE EFFEKTE
+// src/mesh/vaseGeometry.js - DIREKT DRUCKFREUNDLICHE GEOMETRIE-ERZEUGUNG
 // ============================================
 import * as THREE from 'three';
 import { PerlinNoise } from '../utils/perlinNoise.js';
@@ -11,342 +11,345 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
     const {
         height, baseRadius, topRadius, segments, heightSegments,
         amplification, noiseIntensity, smoothing, wavePattern,
-        printOptimization // NEUE 3D-DRUCK OPTIMIERUNG
+        printOptimization // 3D-DRUCK PARAMETER
     } = settings;
 
-    console.log('🏺 Vase-Generierung gestartet...');
-    if (printOptimization?.enabled) {
-        console.log('🚀 Live 3D-Druck Optimierung aktiviert:');
-        console.log(`   Max Überhang: ${printOptimization.maxOverhang}°`);
-        console.log(`   Audio-Erhaltung: ${Math.round(printOptimization.audioPreservation * 100)}%`);
-        console.log(`   Glättungs-Stärke: ${Math.round(printOptimization.smoothingStrength * 100)}%`);
-        console.log(`   Spitzen-Schwellwert: ${printOptimization.spikeThreshold}`);
+    console.log('🏺 Druckfreundliche Vase-Generierung gestartet...');
+    
+    // Druckparameter extrahieren oder Defaults setzen
+    const printParams = {
+        enabled: printOptimization?.enabled || false,
+        maxOverhang: printOptimization?.maxOverhang || 45,
+        maxSpikeHeight: printOptimization?.spikeThreshold || 2.0,
+        audioPreservation: printOptimization?.audioPreservation || 0.7,
+        smoothingStrength: printOptimization?.smoothingStrength || 0.3
+    };
+
+    if (printParams.enabled) {
+        console.log('🛡️ 3D-Druck-Modus aktiviert:');
+        console.log(`   Max Überhang: ${printParams.maxOverhang}°`);
+        console.log(`   Max Spikenhöhe: ${printParams.maxSpikeHeight}mm`);
+        console.log(`   Audio-Erhaltung: ${Math.round(printParams.audioPreservation * 100)}%`);
     }
 
     const geometry = new THREE.CylinderGeometry(topRadius, baseRadius, height, segments, heightSegments, true);
     const positions = geometry.attributes.position.array;
 
-    // Audio-Daten mehrfach glätten für organischere Übergänge
+    // Audio-Daten mehrfach glätten für organische Übergänge
     let smoothedAudio = smoothAudioData(audioData, smoothing);
-    smoothedAudio = smoothAudioData(smoothedAudio, smoothing * 0.5); // Zweite Glättung
+    smoothedAudio = smoothAudioData(smoothedAudio, smoothing * 0.5);
 
-    // Normalisierung der Audio-Daten für bessere Kontrolle
+    // Audio-Daten normalisieren
     const maxAmplitude = Math.max(...smoothedAudio.map(d => d.amplitude));
     const normalizedAudio = smoothedAudio.map(d => ({
         ...d,
         amplitude: d.amplitude / (maxAmplitude || 1),
-        frequency: d.frequency / 22050 // Normalisiert auf 0-1
+        frequency: d.frequency / 22050
     }));
 
-    // ===== PRINTABILITY TRACKING ARRAYS =====
-    const vertexCount = positions.length / 3;
-    const vertexProblems = new Array(vertexCount).fill(null).map(() => ({
-        overhang: false,
-        spike: false,
-        severity: 0
-    }));
+    // ===== DRUCKFREUNDLICHE AMPLITUDE-BEGRENZUNG =====
+    const maxRadiusChange = printParams.enabled ? 
+        Math.min(amplification, printParams.maxSpikeHeight / 10) : // Begrenzt auf Spike-Schwellwert
+        amplification;
 
-    // ===== ERSTE PASS: AUDIO-BASIERTE GENERIERUNG =====
+    console.log(`📏 Max Radius-Änderung: ${maxRadiusChange.toFixed(2)} (Original: ${amplification})`);
+
+    // ===== ÜBERHANG-BEWUSSTE GEOMETRIE-ERZEUGUNG =====
+    const maxOverhangRad = (printParams.maxOverhang * Math.PI) / 180;
+    let overhangWarnings = 0;
+
     for (let i = 0; i < positions.length; i += 3) {
         const x = positions[i];
         const y = positions[i + 1];
         const z = positions[i + 2];
 
-        // Normalisierte Höhe (0 bis 1)
         const normalizedY = (y + height / 2) / height;
-
-        // Bessere Audio-Interpolation mit cubic interpolation
         const audioValue = interpolateAudioData(normalizedAudio, normalizedY);
         const amplitude = audioValue.amplitude;
         const frequency = audioValue.frequency;
 
-        // Winkel und Radius
         const angle = Math.atan2(z, x);
-        const radius = Math.sqrt(x * x + z * z);
+        const currentRadius = Math.sqrt(x * x + z * z);
 
-        // Multi-Oktaven Perlin Noise für organischere Formen
+        // ===== DRUCKFREUNDLICHE EFFEKTE =====
+        
+        // 1. BEGRENZTE AMPLITUDE-EFFEKTE
+        let amplitudeEffect = Math.pow(amplitude, 1.2) * maxRadiusChange * (1 + frequency * 0.3);
+        
+        // 2. SANFTE PERLIN-NOISE (weniger aggressiv)
+        const noiseScale = printParams.enabled ? 
+            Math.min(noiseIntensity, 1.0) : 
+            noiseIntensity;
+            
         const noise1 = perlinNoise.noise(
-            angle * 3 + frequency * 5,
-            normalizedY * 8 + amplitude * 3,
-            amplitude * 15
-        ) * 0.6;
+            angle * 2 + frequency * 3,
+            normalizedY * 6 + amplitude * 2,
+            amplitude * 10
+        ) * 0.4;
 
         const noise2 = perlinNoise.noise(
-            angle * 8 + frequency * 12,
-            normalizedY * 15 + amplitude * 6,
-            amplitude * 25
-        ) * 0.3;
+            angle * 6 + frequency * 8,
+            normalizedY * 12 + amplitude * 4,
+            amplitude * 20
+        ) * 0.2;
 
-        const noise3 = perlinNoise.noise(
-            angle * 16 + frequency * 20,
-            normalizedY * 25 + amplitude * 10,
-            amplitude * 40
-        ) * 0.1;
+        const combinedNoise = (noise1 + noise2) * noiseScale;
 
-        const combinedNoise = noise1 + noise2 + noise3;
+        // 3. SANFTE FREQUENZ-WELLEN
+        const frequencyWave = Math.sin(angle * frequency * 15 + normalizedY * Math.PI * 3) * 
+                            frequency * 0.2 * maxRadiusChange;
 
-        // Amplitude-basierte Verzerrung mit nicht-linearer Verstärkung
-        const amplitudeEffect = Math.pow(amplitude, 1.5) * amplification * (1 + frequency * 0.5);
-
-        // Frequency-basierte Welligkeit
-        const frequencyWave = Math.sin(angle * frequency * 20 + normalizedY * Math.PI * 4) * frequency * 0.3;
-
-        // Organische Noise-Effekte
-        const noiseEffect = combinedNoise * noiseIntensity * (0.5 + amplitude * 1.5);
-
-        // Vertikale Verzerrung für fließende Formen
-        const verticalDistortion = perlinNoise.noise(
-            angle * 2,
-            normalizedY * 6,
-            amplitude * 8
-        ) * amplitude * 0.8;
-
-        // WELLENMUSTER-EFFEKTE
+        // 4. WELLENMUSTER-EFFEKTE (falls aktiviert)
         let waveEffect = 0;
         if (wavePattern && wavePattern.enabled) {
             waveEffect = calculateWavePattern(
                 angle, normalizedY, wavePattern, amplitude, frequency
             );
-        }
-
-        // Neuer Radius mit allen Effekten (inkl. Wellenmuster)
-        const radiusModification = amplitudeEffect + noiseEffect + frequencyWave + waveEffect;
-        const newRadius = Math.max(radius * 0.3, radius + radiusModification);
-
-        // Neue Position berechnen
-        positions[i] = (x / radius) * newRadius;
-        positions[i + 1] = y + verticalDistortion; // Vertikale Verzerrung hinzufügen
-        positions[i + 2] = (z / radius) * newRadius;
-    }
-
-    // ===== LIVE 3D-DRUCK OPTIMIERUNG =====
-    if (printOptimization?.enabled) {
-        console.log('🔧 Live-Optimierung wird angewendet...');
-
-        // Temporäres Geometry für Normalen-Berechnung
-        const tempGeometry = new THREE.BufferGeometry();
-        tempGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-        tempGeometry.setIndex(geometry.index);
-        tempGeometry.computeVertexNormals();
-
-        const normals = tempGeometry.attributes.normal.array;
-        const upVector = new THREE.Vector3(0, 1, 0);
-        const maxOverhangRad = (printOptimization.maxOverhang * Math.PI) / 180;
-
-        let overhangCount = 0;
-        let spikeCount = 0;
-
-        // ===== PROBLEM-DETECTION =====
-        for (let i = 0; i < vertexCount; i++) {
-            const vertexIndex = i * 3;
-
-            // Vertex normale
-            const normal = new THREE.Vector3(
-                normals[vertexIndex],
-                normals[vertexIndex + 1],
-                normals[vertexIndex + 2]
-            );
-
-            // ===== ÜBERHANG-DETECTION =====
-            const angle = normal.angleTo(upVector);
-            const overhangAngle = Math.PI / 2 - angle; // Winkel zur Horizontalen
-
-            if (overhangAngle > maxOverhangRad) {
-                vertexProblems[i].overhang = true;
-                vertexProblems[i].severity = Math.max(vertexProblems[i].severity, overhangAngle / (Math.PI / 2));
-                overhangCount++;
-            }
-
-            // ===== SPIKE-DETECTION =====
-            const neighbors = findVertexNeighbors(i, geometry.index.array, vertexCount);
-            const curvature = calculateLocalCurvature(i, neighbors, positions);
-
-            if (curvature > printOptimization.spikeThreshold) {
-                vertexProblems[i].spike = true;
-                vertexProblems[i].severity = Math.max(vertexProblems[i].severity,
-                    Math.min(curvature / (printOptimization.spikeThreshold * 3), 1));
-                spikeCount++;
+            
+            // Bei 3D-Druck: Wellenmuster begrenzen
+            if (printParams.enabled) {
+                waveEffect = Math.max(-maxRadiusChange * 0.3, 
+                                    Math.min(maxRadiusChange * 0.3, waveEffect));
             }
         }
 
-        console.log(`🔍 Problem-Detection abgeschlossen:`);
-        console.log(`   Überhang-Vertices: ${overhangCount}`);
-        console.log(`   Spike-Vertices: ${spikeCount}`);
+        // 5. GESAMTE RADIUS-MODIFIKATION BERECHNEN
+        let totalRadiusChange = amplitudeEffect + combinedNoise + frequencyWave + waveEffect;
 
-        // ===== LIVE KORREKTUR =====
-        let correctedVertices = 0;
-
-        for (let i = 0; i < vertexCount; i++) {
-            const problem = vertexProblems[i];
-
-            if (problem.overhang || problem.spike) {
-                const vertexIndex = i * 3;
-                const neighbors = findVertexNeighbors(i, geometry.index.array, vertexCount);
-
-                if (neighbors.length > 0) {
-                    // Durchschnitts-Position der Nachbarn
-                    let avgX = 0, avgY = 0, avgZ = 0;
-                    for (let j = 0; j < neighbors.length; j++) {
-                        const nIdx = neighbors[j] * 3;
-                        avgX += positions[nIdx];
-                        avgY += positions[nIdx + 1];
-                        avgZ += positions[nIdx + 2];
-                    }
-                    avgX /= neighbors.length;
-                    avgY /= neighbors.length;
-                    avgZ /= neighbors.length;
-
-                    // Glättungsstärke basierend auf Problem-Schwere und Settings
-                    const baseSmoothingStrength = printOptimization.smoothingStrength;
-                    const severityMultiplier = 1 + problem.severity;
-                    const smoothingStrength = baseSmoothingStrength * severityMultiplier;
-
-                    // Audio-Erhaltung anwenden
-                    const preservation = printOptimization.audioPreservation;
-
-                    // Original-Position
-                    const originalX = positions[vertexIndex];
-                    const originalY = positions[vertexIndex + 1];
-                    const originalZ = positions[vertexIndex + 2];
-
-                    // Neue Position = Audio-Erhaltung * Original + Glättung * Durchschnitt
-                    positions[vertexIndex] = originalX * preservation +
-                        (originalX * (1 - smoothingStrength) + avgX * smoothingStrength) * (1 - preservation);
-
-                    // Y-Komponente weniger glätten um Vasenhöhe zu erhalten
-                    positions[vertexIndex + 1] = originalY * (preservation + 0.3) +
-                        (originalY * (1 - smoothingStrength * 0.3) + avgY * smoothingStrength * 0.3) * (0.7 - preservation);
-
-                    positions[vertexIndex + 2] = originalZ * preservation +
-                        (originalZ * (1 - smoothingStrength) + avgZ * smoothingStrength) * (1 - preservation);
-
-                    correctedVertices++;
+        // ===== 3D-DRUCK ÜBERHANG-PRÜFUNG UND -KORREKTUR =====
+        if (printParams.enabled) {
+            // Benachbarte Y-Levels für Überhang-Berechnung
+            const prevY = normalizedY - (1 / heightSegments);
+            const nextY = normalizedY + (1 / heightSegments);
+            
+            if (prevY >= 0) {
+                const prevAudioValue = interpolateAudioData(normalizedAudio, prevY);
+                const prevAmplitudeEffect = Math.pow(prevAudioValue.amplitude, 1.2) * maxRadiusChange;
+                
+                // Radius-Änderung zwischen Levels berechnen
+                const radiusGradient = totalRadiusChange - prevAmplitudeEffect;
+                const heightStep = height / heightSegments;
+                
+                // Überhang-Winkel berechnen
+                const overhangAngle = Math.atan(Math.abs(radiusGradient) / heightStep);
+                
+                if (overhangAngle > maxOverhangRad) {
+                    // Radius-Änderung begrenzen um Überhang zu vermeiden
+                    const maxAllowedRadiusChange = Math.tan(maxOverhangRad) * heightStep;
+                    const sign = radiusGradient >= 0 ? 1 : -1;
+                    
+                    totalRadiusChange = prevAmplitudeEffect + (maxAllowedRadiusChange * sign * 0.8); // 80% Sicherheit
+                    overhangWarnings++;
                 }
             }
         }
 
-        console.log(`✅ Live-Optimierung abgeschlossen:`);
-        console.log(`   Korrigierte Vertices: ${correctedVertices}`);
-        console.log(`   Verbleibende Probleme: ${Math.max(0, overhangCount + spikeCount - correctedVertices)}`);
-        console.log(`   Audio-Erhaltung: ${Math.round(printOptimization.audioPreservation * 100)}%`);
+        // ===== FINALE POSITION BERECHNEN =====
+        const newRadius = Math.max(currentRadius * 0.2, currentRadius + totalRadiusChange);
+        
+        // Sanfte vertikale Verzerrung (reduziert bei 3D-Druck)
+        const verticalDistortionScale = printParams.enabled ? 0.3 : 0.8;
+        const verticalDistortion = perlinNoise.noise(
+            angle * 1.5,
+            normalizedY * 4,
+            amplitude * 6
+        ) * amplitude * verticalDistortionScale;
+
+        // Position aktualisieren
+        positions[i] = (x / currentRadius) * newRadius;
+        positions[i + 1] = y + (printParams.enabled ? 
+            Math.max(-0.5, Math.min(0.5, verticalDistortion)) : // Begrenzt
+            verticalDistortion); // Unbegrenzt
+        positions[i + 2] = (z / currentRadius) * newRadius;
     }
 
-    // Geometrie smoothing für organischere Oberfläche (weniger aggressiv wenn 3D-Druck Optimierung aktiv)
-    const smoothingIterations = printOptimization?.enabled ? 1 : 2;
-    smoothGeometry(positions, segments, heightSegments, smoothingIterations);
+    // ===== DRUCKFREUNDLICHE NACHBEARBEITUNG =====
+    if (printParams.enabled) {
+        console.log(`⚠️ Überhang-Korrekturen: ${overhangWarnings}`);
+        
+        // SANFTE GLÄTTUNG für bessere Druckbarkeit
+        smoothGeometryForPrinting(positions, segments, heightSegments, printParams);
+        
+        // SPIKE-DETECTION UND -REDUKTION
+        reduceSharpSpikes(positions, segments, heightSegments, printParams);
+    } else {
+        // Standard-Glättung für organische Oberfläche
+        smoothGeometry(positions, segments, heightSegments, 2);
+    }
 
+    // Geometrie aktualisieren
     geometry.attributes.position.needsUpdate = true;
     geometry.computeVertexNormals();
 
-    if (printOptimization?.enabled) {
-        console.log('🎯 Live-optimierte Vase erfolgreich generiert!');
-    }
-
+    console.log('✅ Druckfreundliche Vase erfolgreich generiert!');
     return geometry;
 };
 
-// ===== HILFSFUNKTIONEN FÜR LIVE-OPTIMIERUNG =====
+// ===== DRUCKFREUNDLICHE GLÄTTUNGS-FUNKTIONEN =====
 
-const findVertexNeighbors = (vertexIndex, indices, vertexCount) => {
-    const neighbors = new Set();
+const smoothGeometryForPrinting = (positions, segments, heightSegments, printParams) => {
+    console.log('🔧 Anwenden der druckfreundlichen Glättung...');
+    
+    const iterations = Math.max(1, Math.floor(printParams.smoothingStrength * 5));
+    const preservationFactor = printParams.audioPreservation;
+    
+    for (let iter = 0; iter < iterations; iter++) {
+        const newPositions = [...positions];
+        const vertexCount = positions.length / 3;
 
-    for (let i = 0; i < indices.length; i += 3) {
-        const v1 = indices[i];
-        const v2 = indices[i + 1];
-        const v3 = indices[i + 2];
+        for (let h = 1; h < heightSegments; h++) {
+            for (let s = 0; s < segments; s++) {
+                const currentVertexIndex = h * (segments + 1) + s;
+                
+                if (currentVertexIndex >= vertexCount) continue;
+                
+                const currentIndex = currentVertexIndex * 3;
+                
+                // Nachbar-Indices sammeln
+                const neighbors = [];
+                
+                // Vertikale Nachbarn
+                if (h > 0) neighbors.push(((h - 1) * (segments + 1) + s) * 3);
+                if (h < heightSegments - 1) neighbors.push(((h + 1) * (segments + 1) + s) * 3);
+                
+                // Horizontale Nachbarn
+                const leftS = (s - 1 + segments) % segments;
+                const rightS = (s + 1) % segments;
+                neighbors.push((h * (segments + 1) + leftS) * 3);
+                neighbors.push((h * (segments + 1) + rightS) * 3);
 
-        if (v1 === vertexIndex) {
-            neighbors.add(v2);
-            neighbors.add(v3);
-        } else if (v2 === vertexIndex) {
-            neighbors.add(v1);
-            neighbors.add(v3);
-        } else if (v3 === vertexIndex) {
-            neighbors.add(v1);
-            neighbors.add(v2);
+                if (neighbors.length === 0) continue;
+
+                // Durchschnitts-Position berechnen
+                let avgX = 0, avgY = 0, avgZ = 0;
+                for (let nIdx of neighbors) {
+                    avgX += positions[nIdx];
+                    avgY += positions[nIdx + 1];
+                    avgZ += positions[nIdx + 2];
+                }
+                avgX /= neighbors.length;
+                avgY /= neighbors.length;
+                avgZ /= neighbors.length;
+
+                // Audio-erhaltende Glättung
+                const smoothingStrength = 0.2; // Sanfte Glättung
+                
+                newPositions[currentIndex] = 
+                    positions[currentIndex] * preservationFactor +
+                    (positions[currentIndex] * (1 - smoothingStrength) + avgX * smoothingStrength) * (1 - preservationFactor);
+                
+                // Y weniger glätten um Vasenhöhe zu erhalten
+                newPositions[currentIndex + 1] = 
+                    positions[currentIndex + 1] * 0.9 +
+                    (positions[currentIndex + 1] * (1 - smoothingStrength * 0.5) + avgY * smoothingStrength * 0.5) * 0.1;
+                
+                newPositions[currentIndex + 2] = 
+                    positions[currentIndex + 2] * preservationFactor +
+                    (positions[currentIndex + 2] * (1 - smoothingStrength) + avgZ * smoothingStrength) * (1 - preservationFactor);
+            }
+        }
+        
+        // Neue Positionen übernehmen
+        for (let i = 0; i < positions.length; i++) {
+            positions[i] = newPositions[i];
         }
     }
-
-    return Array.from(neighbors).filter(n => n < vertexCount);
 };
 
-const calculateLocalCurvature = (vertexIndex, neighbors, positions) => {
-    if (neighbors.length < 3) return 0;
+const reduceSharpSpikes = (positions, segments, heightSegments, printParams) => {
+    console.log('✂️ Reduzierung scharfer Spitzen...');
+    
+    const vertexCount = positions.length / 3;
+    const maxSpikeHeight = printParams.maxSpikeHeight / 10; // mm zu cm
+    let spikesReduced = 0;
 
-    const centerPos = new THREE.Vector3(
-        positions[vertexIndex * 3],
-        positions[vertexIndex * 3 + 1],
-        positions[vertexIndex * 3 + 2]
-    );
+    for (let h = 1; h < heightSegments - 1; h++) {
+        for (let s = 0; s < segments; s++) {
+            const currentVertexIndex = h * (segments + 1) + s;
+            
+            if (currentVertexIndex >= vertexCount) continue;
+            
+            const currentIndex = currentVertexIndex * 3;
+            
+            // Nachbarn für Spike-Detection
+            const neighbors = [
+                ((h - 1) * (segments + 1) + s) * 3, // oben
+                ((h + 1) * (segments + 1) + s) * 3, // unten
+                (h * (segments + 1) + ((s - 1 + segments) % segments)) * 3, // links
+                (h * (segments + 1) + ((s + 1) % segments)) * 3  // rechts
+            ];
 
-    let totalCurvature = 0;
-    let validNeighbors = 0;
+            // Durchschnitts-Radius der Nachbarn
+            let avgRadius = 0;
+            for (let nIdx of neighbors) {
+                const nx = positions[nIdx];
+                const nz = positions[nIdx + 2];
+                avgRadius += Math.sqrt(nx * nx + nz * nz);
+            }
+            avgRadius /= neighbors.length;
 
-    for (let i = 0; i < neighbors.length; i++) {
-        const neighborIndex = neighbors[i] * 3;
-        if (neighborIndex < positions.length - 2) {
-            const neighborPos = new THREE.Vector3(
-                positions[neighborIndex],
-                positions[neighborIndex + 1],
-                positions[neighborIndex + 2]
-            );
+            // Aktueller Radius
+            const currentX = positions[currentIndex];
+            const currentZ = positions[currentIndex + 2];
+            const currentRadius = Math.sqrt(currentX * currentX + currentZ * currentZ);
 
-            const distance = centerPos.distanceTo(neighborPos);
-            if (distance > 0.001) { // Avoid division by zero
-                totalCurvature += 1 / distance; // Hohe Curvature = kurze Distanz zu Nachbarn
-                validNeighbors++;
+            // Spike-Detection: Radius-Abweichung
+            const radiusDiff = Math.abs(currentRadius - avgRadius);
+            
+            if (radiusDiff > maxSpikeHeight) {
+                // Spike reduzieren
+                const reductionFactor = maxSpikeHeight / radiusDiff * 0.8; // 80% des Limits
+                const targetRadius = avgRadius + (currentRadius - avgRadius) * reductionFactor;
+                
+                if (currentRadius > 0) {
+                    const scale = targetRadius / currentRadius;
+                    positions[currentIndex] *= scale;
+                    positions[currentIndex + 2] *= scale;
+                    spikesReduced++;
+                }
             }
         }
     }
-
-    return validNeighbors > 0 ? totalCurvature / validNeighbors : 0;
+    
+    console.log(`✂️ ${spikesReduced} Spitzen reduziert`);
 };
 
-// NEUE FUNKTION: Wellenmuster berechnen
+// ===== HILFSFUNKTIONEN (unverändert) =====
+
 const calculateWavePattern = (angle, normalizedY, wavePattern, amplitude, frequency) => {
     const { type, amplitude: waveAmp, frequency: waveFreq, spiralTurns, phase } = wavePattern;
-    const phaseRad = (phase * Math.PI) / 180; // Grad zu Radiant
+    const phaseRad = (phase * Math.PI) / 180;
 
     let waveValue = 0;
 
     switch (type) {
         case 'spiral':
-            // Spiralförmige Wellen - wie im Bild!
             const spiralAngle = angle + normalizedY * spiralTurns * Math.PI * 2;
             waveValue = Math.sin(spiralAngle * waveFreq + phaseRad) * waveAmp;
-
-            // Zusätzliche Detailwellen für realistischeren Effekt
             waveValue += Math.sin(spiralAngle * waveFreq * 2 + phaseRad * 1.5) * waveAmp * 0.3;
             break;
 
         case 'vertical':
-            // Vertikale Rillen
             waveValue = Math.sin(angle * waveFreq + phaseRad) * waveAmp;
             break;
 
         case 'horizontal':
-            // Horizontale Ringe
             waveValue = Math.sin(normalizedY * Math.PI * waveFreq + phaseRad) * waveAmp;
             break;
 
         case 'diamond':
-            // Rautenmuster
             const diamondPattern = Math.sin(angle * waveFreq + normalizedY * Math.PI * 4 + phaseRad) +
                 Math.sin((angle + Math.PI / 4) * waveFreq - normalizedY * Math.PI * 4 + phaseRad);
             waveValue = diamondPattern * waveAmp * 0.5;
             break;
     }
 
-    // Wellenstärke an Audio-Amplitude anpassen
-    waveValue *= (0.7 + amplitude * 0.6); // Basis + Audio-Einfluss
-
-    // Frequenz-basierte Modulation für dynamische Effekte
+    waveValue *= (0.7 + amplitude * 0.6);
     waveValue *= (0.8 + frequency * 0.4);
 
     return waveValue;
 };
 
-// Kubische Interpolation für Audio-Daten
 const interpolateAudioData = (audioData, normalizedY) => {
     const index = normalizedY * (audioData.length - 1);
     const lowerIndex = Math.floor(index);
@@ -360,7 +363,6 @@ const interpolateAudioData = (audioData, normalizedY) => {
     const lower = audioData[lowerIndex];
     const upper = audioData[upperIndex];
 
-    // Kubische Interpolation für sanftere Übergänge
     const t2 = t * t;
     const t3 = t2 * t;
     const weight = 3 * t2 - 2 * t3;
@@ -371,7 +373,6 @@ const interpolateAudioData = (audioData, normalizedY) => {
     };
 };
 
-// Geometrie-Glättung für organischere Oberflächen (mit konfigurierbaren Iterationen)
 const smoothGeometry = (positions, segments, heightSegments, iterations = 2) => {
     for (let iter = 0; iter < iterations; iter++) {
         const newPositions = [...positions];
@@ -389,7 +390,6 @@ const smoothGeometry = (positions, segments, heightSegments, iterations = 2) => 
                 const leftIndex = (h * (segments + 1) + ((s - 1 + segments) % segments)) * 3;
                 const rightIndex = (h * (segments + 1) + ((s + 1) % segments)) * 3;
 
-                // Nur X und Z glätten (nicht Y, um die Höhe zu bewahren)
                 if (prevIndex >= 0 && nextIndex < positions.length &&
                     leftIndex >= 0 && rightIndex < positions.length) {
 
@@ -412,7 +412,6 @@ const smoothGeometry = (positions, segments, heightSegments, iterations = 2) => 
             }
         }
 
-        // Neue Positionen übernehmen
         for (let i = 0; i < positions.length; i++) {
             positions[i] = newPositions[i];
         }
