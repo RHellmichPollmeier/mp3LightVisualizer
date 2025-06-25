@@ -1,5 +1,5 @@
 // ============================================
-// src/mesh/vaseGeometry.js - VERBESSERTE BELEUCHTUNG + VOLUMETRISCHE EFFEKTE
+// src/mesh/vaseGeometry.js - LIVE 3D-DRUCK OPTIMIERUNG + VOLUMETRISCHE EFFEKTE
 // ============================================
 import * as THREE from 'three';
 import { PerlinNoise } from '../utils/perlinNoise.js';
@@ -10,8 +10,18 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
 
     const {
         height, baseRadius, topRadius, segments, heightSegments,
-        amplification, noiseIntensity, smoothing, wavePattern
+        amplification, noiseIntensity, smoothing, wavePattern,
+        printOptimization // NEUE 3D-DRUCK OPTIMIERUNG
     } = settings;
+
+    console.log('🏺 Vase-Generierung gestartet...');
+    if (printOptimization?.enabled) {
+        console.log('🚀 Live 3D-Druck Optimierung aktiviert:');
+        console.log(`   Max Überhang: ${printOptimization.maxOverhang}°`);
+        console.log(`   Audio-Erhaltung: ${Math.round(printOptimization.audioPreservation * 100)}%`);
+        console.log(`   Glättungs-Stärke: ${Math.round(printOptimization.smoothingStrength * 100)}%`);
+        console.log(`   Spitzen-Schwellwert: ${printOptimization.spikeThreshold}`);
+    }
 
     const geometry = new THREE.CylinderGeometry(topRadius, baseRadius, height, segments, heightSegments, true);
     const positions = geometry.attributes.position.array;
@@ -28,6 +38,15 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
         frequency: d.frequency / 22050 // Normalisiert auf 0-1
     }));
 
+    // ===== PRINTABILITY TRACKING ARRAYS =====
+    const vertexCount = positions.length / 3;
+    const vertexProblems = new Array(vertexCount).fill(null).map(() => ({
+        overhang: false,
+        spike: false,
+        severity: 0
+    }));
+
+    // ===== ERSTE PASS: AUDIO-BASIERTE GENERIERUNG =====
     for (let i = 0; i < positions.length; i += 3) {
         const x = positions[i];
         const y = positions[i + 1];
@@ -82,7 +101,7 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
             amplitude * 8
         ) * amplitude * 0.8;
 
-        // NEUE WELLENMUSTER-EFFEKTE
+        // WELLENMUSTER-EFFEKTE
         let waveEffect = 0;
         if (wavePattern && wavePattern.enabled) {
             waveEffect = calculateWavePattern(
@@ -100,13 +119,187 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
         positions[i + 2] = (z / radius) * newRadius;
     }
 
-    // Geometrie smoothing für organischere Oberfläche
-    smoothGeometry(positions, segments, heightSegments);
+    // ===== LIVE 3D-DRUCK OPTIMIERUNG =====
+    if (printOptimization?.enabled) {
+        console.log('🔧 Live-Optimierung wird angewendet...');
+
+        // Temporäres Geometry für Normalen-Berechnung
+        const tempGeometry = new THREE.BufferGeometry();
+        tempGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        tempGeometry.setIndex(geometry.index);
+        tempGeometry.computeVertexNormals();
+
+        const normals = tempGeometry.attributes.normal.array;
+        const upVector = new THREE.Vector3(0, 1, 0);
+        const maxOverhangRad = (printOptimization.maxOverhang * Math.PI) / 180;
+
+        let overhangCount = 0;
+        let spikeCount = 0;
+
+        // ===== PROBLEM-DETECTION =====
+        for (let i = 0; i < vertexCount; i++) {
+            const vertexIndex = i * 3;
+
+            // Vertex normale
+            const normal = new THREE.Vector3(
+                normals[vertexIndex],
+                normals[vertexIndex + 1],
+                normals[vertexIndex + 2]
+            );
+
+            // ===== ÜBERHANG-DETECTION =====
+            const angle = normal.angleTo(upVector);
+            const overhangAngle = Math.PI / 2 - angle; // Winkel zur Horizontalen
+
+            if (overhangAngle > maxOverhangRad) {
+                vertexProblems[i].overhang = true;
+                vertexProblems[i].severity = Math.max(vertexProblems[i].severity, overhangAngle / (Math.PI / 2));
+                overhangCount++;
+            }
+
+            // ===== SPIKE-DETECTION =====
+            const neighbors = findVertexNeighbors(i, geometry.index.array, vertexCount);
+            const curvature = calculateLocalCurvature(i, neighbors, positions);
+
+            if (curvature > printOptimization.spikeThreshold) {
+                vertexProblems[i].spike = true;
+                vertexProblems[i].severity = Math.max(vertexProblems[i].severity,
+                    Math.min(curvature / (printOptimization.spikeThreshold * 3), 1));
+                spikeCount++;
+            }
+        }
+
+        console.log(`🔍 Problem-Detection abgeschlossen:`);
+        console.log(`   Überhang-Vertices: ${overhangCount}`);
+        console.log(`   Spike-Vertices: ${spikeCount}`);
+
+        // ===== LIVE KORREKTUR =====
+        let correctedVertices = 0;
+
+        for (let i = 0; i < vertexCount; i++) {
+            const problem = vertexProblems[i];
+
+            if (problem.overhang || problem.spike) {
+                const vertexIndex = i * 3;
+                const neighbors = findVertexNeighbors(i, geometry.index.array, vertexCount);
+
+                if (neighbors.length > 0) {
+                    // Durchschnitts-Position der Nachbarn
+                    let avgX = 0, avgY = 0, avgZ = 0;
+                    for (let j = 0; j < neighbors.length; j++) {
+                        const nIdx = neighbors[j] * 3;
+                        avgX += positions[nIdx];
+                        avgY += positions[nIdx + 1];
+                        avgZ += positions[nIdx + 2];
+                    }
+                    avgX /= neighbors.length;
+                    avgY /= neighbors.length;
+                    avgZ /= neighbors.length;
+
+                    // Glättungsstärke basierend auf Problem-Schwere und Settings
+                    const baseSmoothingStrength = printOptimization.smoothingStrength;
+                    const severityMultiplier = 1 + problem.severity;
+                    const smoothingStrength = baseSmoothingStrength * severityMultiplier;
+
+                    // Audio-Erhaltung anwenden
+                    const preservation = printOptimization.audioPreservation;
+
+                    // Original-Position
+                    const originalX = positions[vertexIndex];
+                    const originalY = positions[vertexIndex + 1];
+                    const originalZ = positions[vertexIndex + 2];
+
+                    // Neue Position = Audio-Erhaltung * Original + Glättung * Durchschnitt
+                    positions[vertexIndex] = originalX * preservation +
+                        (originalX * (1 - smoothingStrength) + avgX * smoothingStrength) * (1 - preservation);
+
+                    // Y-Komponente weniger glätten um Vasenhöhe zu erhalten
+                    positions[vertexIndex + 1] = originalY * (preservation + 0.3) +
+                        (originalY * (1 - smoothingStrength * 0.3) + avgY * smoothingStrength * 0.3) * (0.7 - preservation);
+
+                    positions[vertexIndex + 2] = originalZ * preservation +
+                        (originalZ * (1 - smoothingStrength) + avgZ * smoothingStrength) * (1 - preservation);
+
+                    correctedVertices++;
+                }
+            }
+        }
+
+        console.log(`✅ Live-Optimierung abgeschlossen:`);
+        console.log(`   Korrigierte Vertices: ${correctedVertices}`);
+        console.log(`   Verbleibende Probleme: ${Math.max(0, overhangCount + spikeCount - correctedVertices)}`);
+        console.log(`   Audio-Erhaltung: ${Math.round(printOptimization.audioPreservation * 100)}%`);
+    }
+
+    // Geometrie smoothing für organischere Oberfläche (weniger aggressiv wenn 3D-Druck Optimierung aktiv)
+    const smoothingIterations = printOptimization?.enabled ? 1 : 2;
+    smoothGeometry(positions, segments, heightSegments, smoothingIterations);
 
     geometry.attributes.position.needsUpdate = true;
     geometry.computeVertexNormals();
 
+    if (printOptimization?.enabled) {
+        console.log('🎯 Live-optimierte Vase erfolgreich generiert!');
+    }
+
     return geometry;
+};
+
+// ===== HILFSFUNKTIONEN FÜR LIVE-OPTIMIERUNG =====
+
+const findVertexNeighbors = (vertexIndex, indices, vertexCount) => {
+    const neighbors = new Set();
+
+    for (let i = 0; i < indices.length; i += 3) {
+        const v1 = indices[i];
+        const v2 = indices[i + 1];
+        const v3 = indices[i + 2];
+
+        if (v1 === vertexIndex) {
+            neighbors.add(v2);
+            neighbors.add(v3);
+        } else if (v2 === vertexIndex) {
+            neighbors.add(v1);
+            neighbors.add(v3);
+        } else if (v3 === vertexIndex) {
+            neighbors.add(v1);
+            neighbors.add(v2);
+        }
+    }
+
+    return Array.from(neighbors).filter(n => n < vertexCount);
+};
+
+const calculateLocalCurvature = (vertexIndex, neighbors, positions) => {
+    if (neighbors.length < 3) return 0;
+
+    const centerPos = new THREE.Vector3(
+        positions[vertexIndex * 3],
+        positions[vertexIndex * 3 + 1],
+        positions[vertexIndex * 3 + 2]
+    );
+
+    let totalCurvature = 0;
+    let validNeighbors = 0;
+
+    for (let i = 0; i < neighbors.length; i++) {
+        const neighborIndex = neighbors[i] * 3;
+        if (neighborIndex < positions.length - 2) {
+            const neighborPos = new THREE.Vector3(
+                positions[neighborIndex],
+                positions[neighborIndex + 1],
+                positions[neighborIndex + 2]
+            );
+
+            const distance = centerPos.distanceTo(neighborPos);
+            if (distance > 0.001) { // Avoid division by zero
+                totalCurvature += 1 / distance; // Hohe Curvature = kurze Distanz zu Nachbarn
+                validNeighbors++;
+            }
+        }
+    }
+
+    return validNeighbors > 0 ? totalCurvature / validNeighbors : 0;
 };
 
 // NEUE FUNKTION: Wellenmuster berechnen
@@ -178,14 +371,19 @@ const interpolateAudioData = (audioData, normalizedY) => {
     };
 };
 
-// Geometrie-Glättung für organischere Oberflächen
+// Geometrie-Glättung für organischere Oberflächen (mit konfigurierbaren Iterationen)
 const smoothGeometry = (positions, segments, heightSegments, iterations = 2) => {
     for (let iter = 0; iter < iterations; iter++) {
         const newPositions = [...positions];
+        const vertexCount = positions.length / 3;
 
         for (let h = 1; h < heightSegments; h++) {
             for (let s = 0; s < segments; s++) {
-                const currentIndex = (h * (segments + 1) + s) * 3;
+                const currentVertexIndex = h * (segments + 1) + s;
+
+                if (currentVertexIndex >= vertexCount) continue;
+
+                const currentIndex = currentVertexIndex * 3;
                 const prevIndex = ((h - 1) * (segments + 1) + s) * 3;
                 const nextIndex = ((h + 1) * (segments + 1) + s) * 3;
                 const leftIndex = (h * (segments + 1) + ((s - 1 + segments) % segments)) * 3;
@@ -243,7 +441,7 @@ export const createVaseMaterial = () => {
 };
 
 // ============================================
-// NEUE VOLUMETRISCHE BELEUCHTUNGS-FUNKTIONEN
+// VOLUMETRISCHE BELEUCHTUNGS-FUNKTIONEN (unverändert)
 // ============================================
 
 export const createVolumetricLighting = (vaseHeight = 20) => {
@@ -506,33 +704,33 @@ export const createLightParticles = () => {
     return particleGroup;
 };
 
-export const createInnerLight = (vaseHeight = 20) => {
+export const createInnerLight = (vaseHeight = 20, innerLightY = 0.33) => {
     const lightGroup = new THREE.Group();
 
-    // ===== HAUPTLAMPE IM INNEREN der Vase bei 1/3 der Höhe ===== 
+    // ===== HAUPTLAMPE IM INNEREN der Vase bei konfigurierbarer Y-Position ===== 
+    const calculatedHeight = -vaseHeight / 2 + (vaseHeight * innerLightY); // Y-Position basierend auf Parameter
     const innerMainLight = new THREE.PointLight(0xffffff, 18.0, 60); // SEHR HELL für Durchleuchtung
-    const oneThirdHeight = -vaseHeight / 2 + (vaseHeight / 3); // 1/3 von unten
-    innerMainLight.position.set(0, oneThirdHeight, 0); // IM INNEREN bei 1/3 Höhe!
+    innerMainLight.position.set(0, calculatedHeight, 0); // IM INNEREN bei konfigurierbarer Höhe!
     innerMainLight.castShadow = false;
     lightGroup.add(innerMainLight);
 
     // ===== ZUSÄTZLICHE INNENLICHTER für gleichmäßige Ausleuchtung =====
     const innerLights = [
         // Zentrale Lichter auf verschiedenen Höhen im Inneren
-        { color: 0xffffff, position: [0, oneThirdHeight + 3, 0], intensity: 12.0 },    // Etwas höher
-        { color: 0xffffff, position: [0, oneThirdHeight - 2, 0], intensity: 12.0 },    // Etwas tiefer
+        { color: 0xffffff, position: [0, calculatedHeight + 3, 0], intensity: 12.0 },    // Etwas höher
+        { color: 0xffffff, position: [0, calculatedHeight - 2, 0], intensity: 12.0 },    // Etwas tiefer
 
         // Ring von Lichtern um die Hauptlampe (im Inneren)
-        { color: 0xffffff, position: [2, oneThirdHeight, 0], intensity: 8.0 },         // Rechts innen
-        { color: 0xffffff, position: [-2, oneThirdHeight, 0], intensity: 8.0 },        // Links innen
-        { color: 0xffffff, position: [0, oneThirdHeight, 2], intensity: 8.0 },         // Vorne innen
-        { color: 0xffffff, position: [0, oneThirdHeight, -2], intensity: 8.0 },        // Hinten innen
+        { color: 0xffffff, position: [2, calculatedHeight, 0], intensity: 8.0 },         // Rechts innen
+        { color: 0xffffff, position: [-2, calculatedHeight, 0], intensity: 8.0 },        // Links innen
+        { color: 0xffffff, position: [0, calculatedHeight, 2], intensity: 8.0 },         // Vorne innen
+        { color: 0xffffff, position: [0, calculatedHeight, -2], intensity: 8.0 },        // Hinten innen
 
         // Diagonale Lichter für bessere Verteilung
-        { color: 0xffffff, position: [1.5, oneThirdHeight + 1, 1.5], intensity: 6.0 },
-        { color: 0xffffff, position: [-1.5, oneThirdHeight + 1, -1.5], intensity: 6.0 },
-        { color: 0xffffff, position: [1.5, oneThirdHeight - 1, -1.5], intensity: 6.0 },
-        { color: 0xffffff, position: [-1.5, oneThirdHeight - 1, 1.5], intensity: 6.0 },
+        { color: 0xffffff, position: [1.5, calculatedHeight + 1, 1.5], intensity: 6.0 },
+        { color: 0xffffff, position: [-1.5, calculatedHeight + 1, -1.5], intensity: 6.0 },
+        { color: 0xffffff, position: [1.5, calculatedHeight - 1, -1.5], intensity: 6.0 },
+        { color: 0xffffff, position: [-1.5, calculatedHeight - 1, 1.5], intensity: 6.0 },
     ];
 
     innerLights.forEach(lightConfig => {
@@ -544,10 +742,10 @@ export const createInnerLight = (vaseHeight = 20) => {
 
     // ===== FARBIGE AKZENT-LICHTER im Inneren für schöne Effekte =====
     const accentLights = [
-        { color: 0xfff3e0, position: [1, oneThirdHeight + 2, 0], intensity: 4.0 },     // Warm oben
-        { color: 0xe3f2fd, position: [-1, oneThirdHeight + 2, 0], intensity: 4.0 },    // Kühl oben
-        { color: 0xffecb3, position: [0, oneThirdHeight + 1, 1], intensity: 4.0 },     // Gelblich
-        { color: 0xf3e5f5, position: [0, oneThirdHeight + 1, -1], intensity: 4.0 },    // Lila
+        { color: 0xfff3e0, position: [1, calculatedHeight + 2, 0], intensity: 4.0 },     // Warm oben
+        { color: 0xe3f2fd, position: [-1, calculatedHeight + 2, 0], intensity: 4.0 },    // Kühl oben
+        { color: 0xffecb3, position: [0, calculatedHeight + 1, 1], intensity: 4.0 },     // Gelblich
+        { color: 0xf3e5f5, position: [0, calculatedHeight + 1, -1], intensity: 4.0 },    // Lila
     ];
 
     accentLights.forEach(lightConfig => {
@@ -576,7 +774,7 @@ export const createInnerLight = (vaseHeight = 20) => {
     // ===== SPOT LIGHT von oben für zusätzliche Dramatik =====
     const topSpot = new THREE.SpotLight(0xffffff, 6.0, 50, Math.PI * 0.5, 0.2, 1);
     topSpot.position.set(0, vaseHeight / 2 + 5, 0); // Über der Vase
-    topSpot.target.position.set(0, oneThirdHeight, 0); // Zielt auf die Innenlampe
+    topSpot.target.position.set(0, calculatedHeight, 0); // Zielt auf die Innenlampe
     topSpot.castShadow = false;
     lightGroup.add(topSpot);
     lightGroup.add(topSpot.target);
@@ -586,7 +784,7 @@ export const createInnerLight = (vaseHeight = 20) => {
     lightGroup.add(hemiLight);
 
     console.log(`🏮 Lampenschirm-Beleuchtung erstellt: ${lightGroup.children.length} Lichter!`);
-    console.log(`💡 Hauptlampe INNEN bei y = ${oneThirdHeight.toFixed(2)} (1/3 der Höhe)`);
+    console.log(`💡 Hauptlampe INNEN bei y = ${calculatedHeight.toFixed(2)} (${Math.round(innerLightY * 100)}% der Höhe)`);
     console.log(`🔥 Hauptlampe Intensität: ${innerMainLight.intensity}`);
     console.log(`📐 Vase Höhe: ${vaseHeight}, Boden: ${-vaseHeight / 2}, Top: ${vaseHeight / 2}`);
 
