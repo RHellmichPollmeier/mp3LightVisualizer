@@ -118,14 +118,14 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
 
     // ===== SCHRITT 2: LAMELLEN als ALLERLETZTE Schicht aufbringen =====
     if (lamellen && lamellen.enabled) {
-        console.log('🏺 Trage horizontale Lamellen als finale Schicht auf...');
+        console.log('🏺 Trage vertikale Lamellen als finale Schicht auf...');
         applyLamellenFinal(geometry, lamellen);
 
         // ===== SCHRITT 3: Finale Geometrie-Aktualisierung =====
         geometry.attributes.position.needsUpdate = true;
         geometry.computeVertexNormals(); // Normalen nach Lamellen neu berechnen
 
-        console.log(`✅ Organische Vase mit ${lamellen.count} finalen horizontalen Lamellen (Tiefe: ${lamellen.depth}) erstellt!`);
+        console.log(`✅ Organische Vase mit ${lamellen.count} finalen vertikalen Lamellen (Tiefe: ${lamellen.depth}) erstellt!`);
     } else {
         console.log('✅ Organische Vase ohne Lamellen erstellt!');
     }
@@ -143,17 +143,6 @@ const applyLamellenFinal = (geometry, lamellenSettings) => {
     console.log(`🔧 Finale Lamellen-Anwendung auf ${vertexCount} Vertices...`);
     console.log(`📊 Settings: count=${lamellenSettings.count}, depth=${lamellenSettings.depth}`);
 
-    // Y-Bereich der fertigen Vase ermitteln
-    let minY = Infinity, maxY = -Infinity;
-    for (let i = 0; i < vertexCount; i++) {
-        const y = positions[i * 3 + 1];
-        minY = Math.min(minY, y);
-        maxY = Math.max(maxY, y);
-    }
-    const vaseHeight = maxY - minY;
-
-    console.log(`📏 Vase Y-Bereich: ${minY.toFixed(2)} bis ${maxY.toFixed(2)} (Höhe: ${vaseHeight.toFixed(2)})`);
-
     const { count, depth } = lamellenSettings;
     const lamellenDepth = depth * 0.15; // Basis-Tiefe für deutliche Rillen
 
@@ -167,11 +156,13 @@ const applyLamellenFinal = (geometry, lamellenSettings) => {
         const currentRadius = Math.sqrt(x * x + z * z);
 
         if (currentRadius > 0.001) { // Vermeide Division durch 0
-            // Y-Position normalisieren (0 = unten, 1 = oben)
-            const normalizedY = (y - minY) / vaseHeight;
+            // WINKEL-Position berechnen (0 bis 2π)
+            const angle = Math.atan2(z, x);
+            const normalizedAngle = (angle + Math.PI) / (2 * Math.PI); // 0 bis 1
 
-            // HORIZONTALE Lamellen basierend auf Y-Position
-            const lamellenPhase = normalizedY * count * Math.PI * 2;
+            // VERTIKALE Lamellen basierend auf Winkel-Position
+            // Jede Lamelle verläuft von oben nach unten
+            const lamellenPhase = normalizedAngle * count * Math.PI * 2;
             const lamellenWave = Math.sin(lamellenPhase);
 
             // VOLLSTÄNDIGE Sinuswelle nutzen für echte Rillen (positiv UND negativ)
@@ -184,12 +175,13 @@ const applyLamellenFinal = (geometry, lamellenSettings) => {
 
             positions[i3] = x * scale;     // X skalieren
             positions[i3 + 2] = z * scale; // Z skalieren
-            // Y bleibt unverändert für perfekt horizontale Lamellen
+            // Y bleibt unverändert für vertikale Rillen
         }
     }
 
-    console.log(`✅ ${count} perfekt horizontale Lamellen-Rillen als finale Schicht aufgetragen`);
+    console.log(`✅ ${count} perfekt vertikale Lamellen-Rillen (von oben nach unten) als finale Schicht aufgetragen`);
     console.log(`📐 Lamellen-Tiefe: ±${lamellenDepth.toFixed(3)}cm (rein UND raus für echte Rillen)`);
+    console.log(`🏺 Rillen verlaufen vertikal entlang der Außenkontur`);
 };
 
 // ============================================

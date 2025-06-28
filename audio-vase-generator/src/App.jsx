@@ -293,7 +293,7 @@ const App = () => {
           <p>✨ <strong>Caustic-Effekte:</strong> Realistische Lichtbrechungsmuster am Boden wie in echten Glasleuchten</p>
           <p>💫 <strong>Lichtpartikel:</strong> Schwebende "Staub"-Teilchen machen Lichtstrahlen in der Luft sichtbar</p>
           <p>🏺 <strong>STL-Sockel:</strong> Perfekt passender Sockel - Leuchte sitzt exakt auf der Oberseite</p>
-          <p>🌀 <strong>Spiralwellen:</strong> Elegante gedrehte Rillen wie in handwerklichen Glasleuchten</p>
+          <p>🌀 <strong>Vertikale Lamellen:</strong> Elegante Rillen von oben nach unten wie in handwerklichen Glasleuchten</p>
           <p>🧱 <strong>Materialstärke:</strong> Von hauchzartem 0.5mm bis zu massiven 8mm Glas</p>
           <p>🎯 <strong>Y-Position:</strong> Präzise Kontrolle der Innenlicht-Position von Boden bis Spitze</p>
           <p>🎨 <strong>Kontur-Stützpunkte:</strong> 4-16 Punkte für organische Spline-Interpolation</p>

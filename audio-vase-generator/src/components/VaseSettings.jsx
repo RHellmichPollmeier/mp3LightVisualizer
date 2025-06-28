@@ -306,7 +306,7 @@ const VaseSettings = ({ settings, onChange }) => {
                 <div className="border-b border-white/20 pb-4">
                     <h3 className="text-white font-medium mb-3 flex items-center gap-2">
                         <Waves className="w-4 h-4" />
-                        Horizontale Lamellen
+                        Vertikale Lamellen
                     </h3>
 
                     <div className="space-y-3">
@@ -314,7 +314,7 @@ const VaseSettings = ({ settings, onChange }) => {
                         <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
                             <div>
                                 <div className="text-white font-medium">Lamellen aktivieren</div>
-                                <div className="text-blue-200 text-sm">Horizontale Rillen als finale Schicht</div>
+                                <div className="text-blue-200 text-sm">Vertikale Rillen von oben nach unten</div>
                             </div>
                             <button
                                 onClick={() => handleChange('lamellen', { ...settings.lamellen, enabled: !settings.lamellen?.enabled })}
@@ -387,9 +387,9 @@ const VaseSettings = ({ settings, onChange }) => {
                                 </div>
 
                                 <div className="text-xs text-blue-200 bg-blue-900/20 rounded p-2">
-                                    🏺 <strong>Lamellen werden als finale Schicht aufgetragen:</strong><br />
-                                    • Horizontale Rillen über die gesamte Außenkontur<br />
-                                    • Anzahl bestimmt die Dichte der Rillen<br />
+                                    🏺 <strong>Vertikale Lamellen werden als finale Schicht aufgetragen:</strong><br />
+                                    - Vertikale Rillen von oben nach unten entlang der Außenkontur<br />
+                                    - Anzahl bestimmt wie viele Rillen um den Umfang verteilt sind<br />
                                     • Tiefe bestimmt wie stark sie hervortreten/eingedrückt sind<br />
                                     • Werden nach allen anderen Effekten angewendet
                                 </div>
