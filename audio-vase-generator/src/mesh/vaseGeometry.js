@@ -9,15 +9,26 @@ import { smoothAudioData } from '../utils/audioAnalysis.js';
 // LAMELLEN-STRUKTUR auf fertiger Oberfläche
 // ============================================
 // ============================================
-// VERTIKALE LAMELLEN-STRUKTUR (nur nach außen)
+// VERTIKALE LAMELLEN-STRUKTUR (IMMER AKTIV)
+// ============================================
+// ============================================
+// HORIZONTALE LAMELLEN-STRUKTUR (nur nach außen) - wie im Bild 2
 // ============================================
 const applyLamellen = (positions, segments, heightSegments, lamellenSettings) => {
     if (!lamellenSettings.enabled || lamellenSettings.type !== 'lamellen') return;
 
     const { frequency: lamellenCount, amplitude: lamellenDepth, lamellenDepth: depthMultiplier } = lamellenSettings;
-    const actualDepth = (lamellenDepth || 0.4) * (depthMultiplier || 0.6) * 0.3; // Sichtbare Tiefe
+    const actualDepth = (lamellenDepth || 0.4) * (depthMultiplier || 0.6) * 0.5; // Erhöhte Tiefe für bessere Sichtbarkeit
 
-    console.log(`🏺 Anwenden von ${lamellenCount} VERTIKALEN Lamellen (nur nach außen) mit Tiefe ${actualDepth}...`);
+    console.log(`🏺 Anwenden von ${lamellenCount} HORIZONTALEN Lamellen (nur nach außen) mit Tiefe ${actualDepth}...`);
+
+    // Vase-Höhe ermitteln
+    let minY = Infinity, maxY = -Infinity;
+    for (let i = 1; i < positions.length; i += 3) {
+        minY = Math.min(minY, positions[i]);
+        maxY = Math.max(maxY, positions[i]);
+    }
+    const vaseHeight = maxY - minY;
 
     // Für jeden Vertex
     for (let h = 0; h < heightSegments + 1; h++) {
@@ -28,32 +39,31 @@ const applyLamellen = (positions, segments, heightSegments, lamellenSettings) =>
             if (i3 + 2 >= positions.length) continue;
 
             const x = positions[i3];
+            const y = positions[i3 + 1];
             const z = positions[i3 + 2];
             const currentRadius = Math.sqrt(x * x + z * z);
 
             if (currentRadius > 0) {
-                // Winkel dieses Vertex um die Y-Achse
-                const angle = Math.atan2(z, x);
-
-                // Vertikale Lamellen: Position basierend auf Winkel
-                const lamellenPhase = angle * lamellenCount + Math.PI;
+                // HORIZONTALE Lamellen: Position basierend auf Y-Höhe
+                const normalizedY = (y - minY) / vaseHeight; // 0 bis 1
+                const lamellenPhase = normalizedY * lamellenCount * Math.PI * 2;
                 const lamellenIntensity = Math.sin(lamellenPhase);
 
-                // NUR POSITIVE Offsets (nur nach außen!)
+                // NUR POSITIVE Offsets (nur nach außen!) - Stärkerer Effekt
                 const lamellenOffset = Math.max(0, lamellenIntensity) * actualDepth;
 
                 // Normale zur Oberfläche (radial nach außen)
                 const normalX = x / currentRadius;
                 const normalZ = z / currentRadius;
 
-                // Lamellen nur nach außen anwenden
+                // Horizontale Lamellen nur nach außen anwenden
                 positions[i3] += normalX * lamellenOffset;
                 positions[i3 + 2] += normalZ * lamellenOffset;
             }
         }
     }
 
-    console.log(`✅ Vertikale Lamellen-Struktur angewendet: ${lamellenCount} Rillen nur nach außen`);
+    console.log(`✅ Horizontale Lamellen-Struktur angewendet: ${lamellenCount} horizontale Rillen nur nach außen`);
 };
 
 export const createVaseGeometry = (audioData, settings, perlinNoise) => {
@@ -248,9 +258,7 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
         smoothGeometry(positions, segments, heightSegments, 2);
     }
 
-    if (wavePattern && wavePattern.enabled && wavePattern.type === 'lamellen') {
-        applyLamellen(positions, segments, heightSegments, wavePattern);
-    }
+    applyLamellen(positions, segments, heightSegments);
     // Geometrie aktualisieren
     geometry.attributes.position.needsUpdate = true;
     geometry.computeVertexNormals();
