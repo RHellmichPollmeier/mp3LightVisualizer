@@ -122,7 +122,7 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
         enabled: true,
         frequency: 32,        // Mehr Rillen für feinere Struktur
         amplitude: 1.0,       // Stärkere Sichtbarkeit
-        depth: 0.8           // Tiefe nach außen
+        depth: 1.0           // Tiefe nach außen
     };
 
     applyLamellenFinal(geometry, lamellenSettings);
@@ -156,7 +156,7 @@ const applyLamellenFinal = (geometry, settings) => {
     console.log(`📏 Vase Y-Bereich: ${minY.toFixed(2)} bis ${maxY.toFixed(2)} (Höhe: ${vaseHeight.toFixed(2)})`);
 
     const { frequency, amplitude, depth } = settings;
-    const lamellenDepth = amplitude * depth * 0.4; // Sichtbare Tiefe nach außen
+    const lamellenDepth = amplitude * depth * 0.15; // Basis-Tiefe für deutliche Rillen
 
     for (let i = 0; i < vertexCount; i++) {
         const i3 = i * 3;
@@ -174,21 +174,20 @@ const applyLamellenFinal = (geometry, settings) => {
             const lamellenPhase = normalizedY * frequency * Math.PI * 2;
             const lamellenWave = Math.sin(lamellenPhase);
 
-            // NUR POSITIVE Offsets - nur nach außen radial!
-            const lamellenOffset = Math.max(0, lamellenWave) * lamellenDepth;
+            // VOLLSTÄNDIGE Sinuswelle nutzen für echte Rillen (positiv UND negativ)
+            // Positive Werte = nach außen, negative Werte = nach innen (Rillen)
+            const lamellenOffset = lamellenWave * lamellenDepth;
 
-            if (lamellenOffset > 0) {
-                // Nur X und Z verändern (radial nach außen), Y bleibt für horizontale Rillen
-                const radialScale = (currentRadius + lamellenOffset) / currentRadius;
-                positions[i3] = x * radialScale;
-                positions[i3 + 2] = z * radialScale;
-                // Y bleibt unverändert für perfekt horizontale Lamellen
-            }
+            // Radiale Skalierung anwenden
+            const radialScale = (currentRadius + lamellenOffset) / currentRadius;
+            positions[i3] = x * radialScale;
+            positions[i3 + 2] = z * radialScale;
+            // Y bleibt unverändert für perfekt horizontale Lamellen
         }
     }
 
-    console.log(`✅ ${frequency} perfekt horizontale Lamellen als finale Schicht aufgetragen`);
-    console.log(`📐 Lamellen-Tiefe: ${lamellenDepth.toFixed(3)}cm NUR radial nach außen`);
+    console.log(`✅ ${frequency} perfekt horizontale Lamellen-Rillen als finale Schicht aufgetragen`);
+    console.log(`📐 Lamellen-Tiefe: ±${lamellenDepth.toFixed(3)}cm (rein UND raus für echte Rillen)`);
 };
 
 // ============================================
