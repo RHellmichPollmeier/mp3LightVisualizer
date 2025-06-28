@@ -276,7 +276,7 @@ const App = () => {
       {/* Info - Aktualisiert mit volumetrischen Effekten und organischer Kontur-Glättung */}
       <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
         <h3 className="text-lg font-semibold text-white mb-3">✨ Vollständige Audio-Leuchte mit Organischer Kontur-Glättung</h3>
-        <div className="text-blue-200 space-y-2">
+        <div className="text-blue-200 space-y-2 text-sm">
           <p>🌊 <strong>Organische Kontur-Glättung:</strong> Catmull-Rom Splines für keramikartige, handwerkliche Formen</p>
           <p>🎯 <strong>3 Optimierungs-Modi:</strong> Perfekt Druckbar, Ausgewogen, Audio Priorität</p>
           <p>🏺 <strong>Handwerkliche Ästhetik:</strong> Fließende Übergänge wie von Meister-Töpfern gefertigt</p>

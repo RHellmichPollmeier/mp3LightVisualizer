@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+html {
+  font-size: 18px;
+  /* Standard ist 16px, erhöht auf 18px (+2px) */
+}
+
 /* Custom Scrollbar Styling für die Optionsbar */
 .scrollbar-thin {
   scrollbar-width: thin;

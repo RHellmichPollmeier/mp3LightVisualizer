@@ -159,7 +159,7 @@ const ExportControls = ({ audioData, geometry, baseGeometry, vaseSettings, onGen
                         </div>
 
                         {/* Info zu Materialstärke */}
-                        <div className="text-xs text-blue-200 bg-blue-900/20 rounded p-2">
+                        <div className="text-sm text-blue-200 bg-blue-900/20 rounded p-2">
                             <p><strong>💡 Materialstärke-Guide für 3D-Druck:</strong></p>
                             <p>• <strong>0.8-1.5mm:</strong> Dünn, nur für kleine Leuchten oder flexible Materialien</p>
                             <p>• <strong>1.5-2.5mm:</strong> Standard für PLA/PETG, gute Balance</p>
