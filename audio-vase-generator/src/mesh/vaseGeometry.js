@@ -258,7 +258,14 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
         smoothGeometry(positions, segments, heightSegments, 2);
     }
 
-    applyLamellen(positions, segments, heightSegments);
+    const automaticLamellen = {
+        enabled: true,
+        type: 'lamellen',
+        frequency: 24,        // Anzahl der horizontalen Rillen
+        amplitude: 0.4,       // Stärke der Lamellen
+        lamellenDepth: 0.8    // Tiefe der Rillen
+    };
+    applyLamellen(positions, segments, heightSegments, automaticLamellen);
     // Geometrie aktualisieren
     geometry.attributes.position.needsUpdate = true;
     geometry.computeVertexNormals();
