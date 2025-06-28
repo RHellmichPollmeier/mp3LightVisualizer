@@ -16,6 +16,20 @@ const VaseSettings = ({ settings, onChange }) => {
         }));
     };
 
+    // NEUE FUNKTION: Lamellen-Style Änderungen
+    const handleLamellenChange = (key, value) => {
+        onChange(prev => ({
+            ...prev,
+            wavePattern: {
+                ...prev.wavePattern,
+                lamellenStyle: {
+                    ...prev.wavePattern.lamellenStyle,
+                    [key]: value
+                }
+            }
+        }));
+    };
+
     const handlePrintOptimizationChange = (key, value) => {
         onChange(prev => ({
             ...prev,
@@ -38,7 +52,7 @@ const VaseSettings = ({ settings, onChange }) => {
                         audioPreservation: 0.3,
                         smoothingStrength: 0.6,
                         spikeThreshold: 1.5,
-                        contourPoints: 6  // SEHR ORGANISCH
+                        contourPoints: 6
                     }
                 }));
                 break;
@@ -51,7 +65,7 @@ const VaseSettings = ({ settings, onChange }) => {
                         audioPreservation: 0.9,
                         smoothingStrength: 0.2,
                         spikeThreshold: 3.0,
-                        contourPoints: 12  // AUDIO-DETAILLIERT
+                        contourPoints: 12
                     }
                 }));
                 break;
@@ -64,7 +78,7 @@ const VaseSettings = ({ settings, onChange }) => {
                         audioPreservation: 0.7,
                         smoothingStrength: 0.3,
                         spikeThreshold: 2.0,
-                        contourPoints: 8  // AUSGEWOGEN
+                        contourPoints: 8
                     }
                 }));
         }
@@ -194,7 +208,7 @@ const VaseSettings = ({ settings, onChange }) => {
                                     />
                                 </div>
 
-                                {/* NEUER PARAMETER: Kontur-Stützpunkte */}
+                                {/* Kontur-Stützpunkte */}
                                 <div>
                                     <label className="block text-white text-sm mb-2">
                                         Kontur-Stützpunkte: {settings.printOptimization?.contourPoints || 8}
@@ -302,7 +316,7 @@ const VaseSettings = ({ settings, onChange }) => {
                     </div>
                 </div>
 
-                {/* WELLENMUSTER SEKTION */}
+                {/* ===== ERWEITERTE WELLENMUSTER SEKTION MIT LAMELLEN ===== */}
                 <div className="border-b border-white/20 pb-4">
                     <h3 className="text-white font-medium mb-3 flex items-center gap-2">
                         <Waves className="w-4 h-4" />
@@ -332,21 +346,157 @@ const VaseSettings = ({ settings, onChange }) => {
 
                         {settings.wavePattern.enabled && (
                             <>
-                                {/* Wellenmuster-Typ */}
-                                <div>
-                                    <label className="block text-white text-sm mb-2">Mustertyp</label>
+                                {/* ===== NEUE LAMELLEN-STIL SEKTION ===== */}
+                                {settings.wavePattern.type === 'spiral' && (
+                                    <div className="mt-4 p-3 bg-yellow-900/20 rounded-lg border border-yellow-500/30">
+                                        <h4 className="text-yellow-200 font-medium mb-3 flex items-center gap-2">
+                                            🌀 Lamellen-Stil (wie im Bild)
+                                        </h4>
+
+                                        {/* Lamellen-Modus Ein/Aus */}
+                                        <div className="flex items-center justify-between p-2 bg-white/5 rounded border border-white/10 mb-3">
+                                            <div>
+                                                <div className="text-white text-sm">Lamellen-Modus</div>
+                                                <div className="text-yellow-200 text-xs">Tiefe Spiralrillen wie im Referenzbild</div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleLamellenChange('enabled', !settings.wavePattern.lamellenStyle?.enabled)}
+                                                className={`relative w-10 h-5 rounded-full transition-all duration-300 ${settings.wavePattern.lamellenStyle?.enabled
+                                                    ? 'bg-yellow-600 shadow-lg shadow-yellow-500/50'
+                                                    : 'bg-gray-600'
+                                                    }`}
+                                            >
+                                                <div
+                                                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-300 ${settings.wavePattern.lamellenStyle?.enabled ? 'transform translate-x-5' : ''
+                                                        }`}
+                                                />
+                                            </button>
+                                        </div>
+
+                                        {settings.wavePattern.lamellenStyle?.enabled && (
+                                            <>
+                                                {/* Lamellen-Tiefe */}
+                                                <div className="mb-3">
+                                                    <label className="block text-white text-sm mb-2">
+                                                        Lamellen-Tiefe: {(settings.wavePattern.lamellenStyle?.depth || 0.8).toFixed(2)}
+                                                    </label>
+                                                    <input
+                                                        type="range"
+                                                        min="0.3"
+                                                        max="1.5"
+                                                        step="0.1"
+                                                        value={settings.wavePattern.lamellenStyle?.depth || 0.8}
+                                                        onChange={(e) => handleLamellenChange('depth', Number(e.target.value))}
+                                                        className="w-full"
+                                                    />
+                                                </div>
+
+                                                {/* Lamellen-Schärfe */}
+                                                <div className="mb-3">
+                                                    <label className="block text-white text-sm mb-2">
+                                                        Kanten-Schärfe: {(settings.wavePattern.lamellenStyle?.sharpness || 0.7).toFixed(2)}
+                                                    </label>
+                                                    <input
+                                                        type="range"
+                                                        min="0.2"
+                                                        max="1.0"
+                                                        step="0.1"
+                                                        value={settings.wavePattern.lamellenStyle?.sharpness || 0.7}
+                                                        onChange={(e) => handleLamellenChange('sharpness', Number(e.target.value))}
+                                                        className="w-full"
+                                                    />
+                                                </div>
+
+                                                {/* Lamellen-Anzahl */}
+                                                <div className="mb-3">
+                                                    <label className="block text-white text-sm mb-2">
+                                                        Lamellen-Anzahl: {settings.wavePattern.lamellenStyle?.count || settings.wavePattern.frequency}
+                                                    </label>
+                                                    <input
+                                                        type="range"
+                                                        min="8"
+                                                        max="32"
+                                                        step="2"
+                                                        value={settings.wavePattern.lamellenStyle?.count || settings.wavePattern.frequency}
+                                                        onChange={(e) => handleLamellenChange('count', Number(e.target.value))}
+                                                        className="w-full"
+                                                    />
+                                                </div>
+
+                                                {/* Lamellen-Presets */}
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <button
+                                                        onClick={() => handleLamellenChange('enabled', true) || onChange(prev => ({
+                                                            ...prev,
+                                                            wavePattern: {
+                                                                ...prev.wavePattern,
+                                                                lamellenStyle: {
+                                                                    enabled: true,
+                                                                    depth: 0.6,
+                                                                    sharpness: 0.4,
+                                                                    count: 16
+                                                                }
+                                                            }
+                                                        }))}
+                                                        className="p-2 bg-blue-600/30 hover:bg-blue-600/50 rounded text-white text-xs transition-colors"
+                                                    >
+                                                        🌊 Sanft<br />wie Keramik
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleLamellenChange('enabled', true) || onChange(prev => ({
+                                                            ...prev,
+                                                            wavePattern: {
+                                                                ...prev.wavePattern,
+                                                                lamellenStyle: {
+                                                                    enabled: true,
+                                                                    depth: 1.0,
+                                                                    sharpness: 0.7,
+                                                                    count: 20
+                                                                }
+                                                            }
+                                                        }))}
+                                                        className="p-2 bg-yellow-600/30 hover:bg-yellow-600/50 rounded text-white text-xs transition-colors"
+                                                    >
+                                                        🏺 Klassisch<br />wie im Bild
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleLamellenChange('enabled', true) || onChange(prev => ({
+                                                            ...prev,
+                                                            wavePattern: {
+                                                                ...prev.wavePattern,
+                                                                lamellenStyle: {
+                                                                    enabled: true,
+                                                                    depth: 1.3,
+                                                                    sharpness: 0.9,
+                                                                    count: 24
+                                                                }
+                                                            }
+                                                        }))}
+                                                        className="p-2 bg-orange-600/30 hover:bg-orange-600/50 rounded text-white text-xs transition-colors"
+                                                    >
+                                                        ⚡ Scharf<br />dramatisch
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Erweiterte Wellenmuster-Typen */}
+                                <div className="mt-4">
+                                    <label className="block text-white text-sm mb-2">Lamellen-Typ</label>
                                     <div className="grid grid-cols-2 gap-2">
                                         {[
-                                            { id: 'spiral', name: '🌀 Spiral', desc: 'Wie im Bild' },
-                                            { id: 'vertical', name: '📏 Vertikal', desc: 'Gerade Linien' },
-                                            { id: 'horizontal', name: '〰️ Horizontal', desc: 'Ringe' },
-                                            { id: 'diamond', name: '💠 Diamant', desc: 'Rautenmuster' }
+                                            { id: 'spiral', name: '🌀 Spiral-Lamellen', desc: 'Wie im Bild' },
+                                            { id: 'vertical_lamellen', name: '📏 Vertikal-Lamellen', desc: 'Gerade Rillen' },
+                                            { id: 'horizontal_lamellen', name: '〰️ Ring-Lamellen', desc: 'Horizontale Ringe' },
+                                            { id: 'diamond_lamellen', name: '💠 Diamant-Lamellen', desc: 'Rautenmuster' }
                                         ].map(type => (
                                             <button
                                                 key={type.id}
                                                 onClick={() => handleWaveChange('type', type.id)}
                                                 className={`p-2 rounded text-xs transition-all ${settings.wavePattern.type === type.id
-                                                    ? 'bg-blue-600/50 border border-blue-400 text-white'
+                                                    ? 'bg-yellow-600/50 border border-yellow-400 text-white'
                                                     : 'bg-white/10 border border-white/20 text-blue-200 hover:bg-white/20'
                                                     }`}
                                             >
@@ -421,6 +571,42 @@ const VaseSettings = ({ settings, onChange }) => {
                                         onChange={(e) => handleWaveChange('phase', Number(e.target.value))}
                                         className="w-full"
                                     />
+                                </div>
+
+                                {/* ===== OPTIMIERTES LAMELLEN-PRESET ===== */}
+                                <div className="mt-4 p-3 bg-gradient-to-r from-yellow-600/40 to-orange-600/40 hover:from-yellow-600/60 hover:to-orange-600/60 rounded-lg border border-yellow-500/50">
+                                    <button
+                                        onClick={() => {
+                                            // AKTIVIERT DEN PERFEKTEN LAMELLEN-LOOK WIE IM BILD!
+                                            onChange(prev => ({
+                                                ...prev,
+                                                wavePattern: {
+                                                    enabled: true,
+                                                    type: 'spiral',
+                                                    amplitude: 0.8,
+                                                    frequency: 18,
+                                                    spiralTurns: 3.5,
+                                                    phase: 0,
+                                                    lamellenStyle: {
+                                                        enabled: true,
+                                                        depth: 1.0,
+                                                        sharpness: 0.7,
+                                                        count: 18
+                                                    }
+                                                },
+                                                // Auch andere Settings für Lamellen optimieren
+                                                amplification: 2.5,
+                                                noiseIntensity: 0.8,
+                                                smoothing: 0.1  // Weniger Glättung für scharfe Lamellen
+                                            }));
+                                        }}
+                                        className="w-full text-center text-white font-medium transition-all"
+                                    >
+                                        🏺 LAMELLEN WIE IM BILD
+                                        <div className="text-xs mt-1 opacity-90">
+                                            Spiralrillen + Audio-Modulation
+                                        </div>
+                                    </button>
                                 </div>
 
                                 {/* Wellenmuster Presets */}

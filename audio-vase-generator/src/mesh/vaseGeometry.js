@@ -527,7 +527,7 @@ const reduceSharpSpikes = (positions, segments, heightSegments, printParams) => 
 // ===== HILFSFUNKTIONEN (unverändert) =====
 
 const calculateWavePattern = (angle, normalizedY, wavePattern, amplitude, frequency) => {
-    const { type, amplitude: waveAmp, frequency: waveFreq, spiralTurns, phase } = wavePattern;
+    const { type, amplitude: waveAmp, frequency: waveFreq, spiralTurns, phase, lamellenStyle } = wavePattern;
     const phaseRad = (phase * Math.PI) / 180;
 
     let waveValue = 0;
@@ -535,27 +535,59 @@ const calculateWavePattern = (angle, normalizedY, wavePattern, amplitude, freque
     switch (type) {
         case 'spiral':
             const spiralAngle = angle + normalizedY * spiralTurns * Math.PI * 2;
-            waveValue = Math.sin(spiralAngle * waveFreq + phaseRad) * waveAmp;
-            waveValue += Math.sin(spiralAngle * waveFreq * 2 + phaseRad * 1.5) * waveAmp * 0.3;
+
+            if (lamellenStyle?.enabled) {
+                // ===== NEUE LAMELLEN-BERECHNUNG =====
+                const depth = lamellenStyle.depth || 0.8;
+                const sharpness = lamellenStyle.sharpness || 0.7;
+                const count = lamellenStyle.count || waveFreq;
+
+                // Haupt-Lamellen-Welle (tiefe Rillen)
+                let lamellenWave = Math.sin(spiralAngle * count + phaseRad);
+
+                // Schärfere Kanten durch Potenzierung
+                lamellenWave = Math.sign(lamellenWave) * Math.pow(Math.abs(lamellenWave), sharpness);
+
+                // Tiefe Rillen
+                waveValue = lamellenWave * waveAmp * depth;
+
+                // Sekundäre Feinrillen für Detailreichtum
+                const fineRillen = Math.sin(spiralAngle * count * 3 + phaseRad * 2) * 0.15;
+                waveValue += fineRillen * waveAmp * depth;
+
+                // Audio-Modulation der Lamellen-Tiefe
+                const audioModulation = 0.7 + amplitude * 0.6 + frequency * 0.3;
+                waveValue *= audioModulation;
+
+            } else {
+                // Standard-Spiral (original)
+                waveValue = Math.sin(spiralAngle * waveFreq + phaseRad) * waveAmp;
+                waveValue += Math.sin(spiralAngle * waveFreq * 2 + phaseRad * 1.5) * waveAmp * 0.3;
+            }
             break;
 
-        case 'vertical':
-            waveValue = Math.sin(angle * waveFreq + phaseRad) * waveAmp;
+        case 'vertical_lamellen':
+            // NEUE: Vertikale Lamellen
+            const verticalRillen = Math.sin(angle * waveFreq + phaseRad);
+            waveValue = Math.sign(verticalRillen) * Math.pow(Math.abs(verticalRillen), 0.6) * waveAmp;
             break;
 
-        case 'horizontal':
-            waveValue = Math.sin(normalizedY * Math.PI * waveFreq + phaseRad) * waveAmp;
+        case 'horizontal_lamellen':
+            // NEUE: Horizontale Ringe
+            const horizontalRillen = Math.sin(normalizedY * Math.PI * waveFreq + phaseRad);
+            waveValue = Math.sign(horizontalRillen) * Math.pow(Math.abs(horizontalRillen), 0.5) * waveAmp;
             break;
 
-        case 'diamond':
-            const diamondPattern = Math.sin(angle * waveFreq + normalizedY * Math.PI * 4 + phaseRad) +
-                Math.sin((angle + Math.PI / 4) * waveFreq - normalizedY * Math.PI * 4 + phaseRad);
-            waveValue = diamondPattern * waveAmp * 0.5;
+        case 'diamond_lamellen':
+            // NEUE: Diamant-Lamellen-Muster
+            const diamond1 = Math.sin(angle * waveFreq + normalizedY * Math.PI * 4 + phaseRad);
+            const diamond2 = Math.sin((angle + Math.PI / 4) * waveFreq - normalizedY * Math.PI * 4 + phaseRad);
+            waveValue = (Math.sign(diamond1) * Math.pow(Math.abs(diamond1), 0.6) +
+                Math.sign(diamond2) * Math.pow(Math.abs(diamond2), 0.6)) * waveAmp * 0.5;
             break;
+
+        // ... andere cases bleiben gleich
     }
-
-    waveValue *= (0.7 + amplitude * 0.6);
-    waveValue *= (0.8 + frequency * 0.4);
 
     return waveValue;
 };
