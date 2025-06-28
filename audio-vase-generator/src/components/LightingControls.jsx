@@ -127,7 +127,7 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
                     <div className="space-y-3">
                         <div>
                             <label className="block text-white text-sm mb-2">
-                                Y-Position: {Math.round(lightingSettings.innerLightY * 100)}% der Vasenhöhe
+                                Y-Position: {Math.round(lightingSettings.innerLightY * 100)}% der Leuchtenhöhe
                             </label>
                             <input
                                 type="range"
@@ -282,7 +282,7 @@ const LightingControls = ({ lightingSettings, onLightingChange }) => {
 
                         <div className="text-xs text-purple-200 bg-purple-900/20 rounded p-2">
                             ✨ <strong>Volumetrische Effekte:</strong><br />
-                            • <strong>Lichtstrahlen:</strong> Sichtbare Lichtkegel durch die Vase<br />
+                            • <strong>Lichtstrahlen:</strong> Sichtbare Lichtkegel durch die Leuchte<br />
                             • <strong>Caustics:</strong> Realistische Lichtbrechungsmuster am Boden<br />
                             • <strong>Lichtpartikel:</strong> Schwebende "Staub"-Teilchen im Licht<br />
                             <strong>💡 Tipp:</strong> Diese Effekte sind nur im Lichtbrechungs-Modus sichtbar

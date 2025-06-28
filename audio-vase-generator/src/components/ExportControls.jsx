@@ -11,22 +11,22 @@ const ExportControls = ({ audioData, geometry, baseGeometry, vaseSettings, onGen
         if (!geometry) return;
 
         let geometryToExport = geometry;
-        let filename = 'audio-vase.stl';
+        let filename = 'audio-leuchte.stl';
 
         switch (exportMode) {
             case 'vase':
                 if (useThickGeometry) {
                     geometryToExport = createThickGeometry(geometryToExport, exportWallThickness);
-                    filename = `audio-vase-${exportWallThickness}mm.stl`;
+                    filename = `audio-leuchte-${exportWallThickness}mm.stl`;
                 } else {
-                    filename = 'audio-vase-thin.stl';
+                    filename = 'audio-leuchte-thin.stl';
                 }
                 break;
 
             case 'base':
                 if (baseGeometry) {
                     geometryToExport = baseGeometry;
-                    filename = 'vase-base.stl';
+                    filename = 'leuchte-base.stl';
                 }
                 break;
 
@@ -34,17 +34,17 @@ const ExportControls = ({ audioData, geometry, baseGeometry, vaseSettings, onGen
                 if (baseGeometry && vaseSettings) {
                     if (useThickGeometry) {
                         geometryToExport = combineGeometriesThick(geometryToExport, baseGeometry, vaseSettings, exportWallThickness);
-                        filename = `audio-vase-complete-${exportWallThickness}mm.stl`;
+                        filename = `audio-leuchte-complete-${exportWallThickness}mm.stl`;
                     } else {
                         geometryToExport = combineGeometries(geometryToExport, baseGeometry, vaseSettings);
-                        filename = 'audio-vase-complete-thin.stl';
+                        filename = 'audio-leuchte-complete-thin.stl';
                     }
                 } else {
                     if (useThickGeometry) {
                         geometryToExport = createThickGeometry(geometryToExport, exportWallThickness);
-                        filename = `audio-vase-${exportWallThickness}mm.stl`;
+                        filename = `audio-leuchte-${exportWallThickness}mm.stl`;
                     } else {
-                        filename = 'audio-vase.stl';
+                        filename = 'audio-leuchte.stl';
                     }
                 }
                 break;
@@ -161,11 +161,11 @@ const ExportControls = ({ audioData, geometry, baseGeometry, vaseSettings, onGen
                         {/* Info zu Materialstärke */}
                         <div className="text-xs text-blue-200 bg-blue-900/20 rounded p-2">
                             <p><strong>💡 Materialstärke-Guide für 3D-Druck:</strong></p>
-                            <p>• <strong>0.8-1.5mm:</strong> Dünn, nur für kleine Vasen oder flexible Materialien</p>
+                            <p>• <strong>0.8-1.5mm:</strong> Dünn, nur für kleine Leuchten oder flexible Materialien</p>
                             <p>• <strong>1.5-2.5mm:</strong> Standard für PLA/PETG, gute Balance</p>
-                            <p>• <strong>2.5-4.0mm:</strong> Robust für große Vasen oder mechanische Belastung</p>
+                            <p>• <strong>2.5-4.0mm:</strong> Robust für große Leuchten oder mechanische Belastung</p>
                             <p>• <strong>4.0+mm:</strong> Sehr dick, für dekorative massive Objekte</p>
-                            <p>🔓 <strong>Offene Vase:</strong> Oben und unten offen, nur Seitenwände haben Dicke</p>
+                            <p>🔓 <strong>Offene Leuchte:</strong> Oben und unten offen, nur Seitenwände haben Dicke</p>
                         </div>
                     </>
                 )}
@@ -184,14 +184,14 @@ const ExportControls = ({ audioData, geometry, baseGeometry, vaseSettings, onGen
                     >
                         <div className="flex items-center gap-2">
                             <Package className="w-4 h-4" />
-                            <span className="font-medium">Nur Vase</span>
+                            <span className="font-medium">Nur Leuchte</span>
                             <span className="text-xs bg-green-600/50 px-2 py-1 rounded">DRUCKFERTIG</span>
                             {useThickGeometry && <span className="text-xs bg-blue-600/50 px-2 py-1 rounded">{exportWallThickness}mm</span>}
                         </div>
                         <div className="text-xs opacity-80 mt-1">
                             {useThickGeometry
-                                ? `3D-druckfreundige Audio-Vase mit ${exportWallThickness}mm Wandstärke`
-                                : 'Audio-Vase als dünne Oberfläche (nur für Visualisierung)'
+                                ? `3D-druckfreundige Audio-Leuchte mit ${exportWallThickness}mm Wandstärke`
+                                : 'Audio-Leuchte als dünne Oberfläche (nur für Visualisierung)'
                             }
                         </div>
                     </button>
@@ -227,16 +227,16 @@ const ExportControls = ({ audioData, geometry, baseGeometry, vaseSettings, onGen
                     >
                         <div className="flex items-center gap-2">
                             <Download className="w-4 h-4" />
-                            <span className="font-medium">Vase + Sockel</span>
+                            <span className="font-medium">Leuchte + Sockel</span>
                             <span className="text-xs bg-green-600/50 px-2 py-1 rounded">DRUCKFERTIG</span>
                             {useThickGeometry && <span className="text-xs bg-blue-600/50 px-2 py-1 rounded">{exportWallThickness}mm</span>}
                         </div>
                         <div className="text-xs opacity-80 mt-1">
                             {canExportCombined
                                 ? useThickGeometry
-                                    ? `Kombinierte STL mit ${exportWallThickness}mm Vase-Wandstärke - druckfertig`
-                                    : 'Kombinierte STL mit dünner Vase'
-                                : 'Benötigt Vase und STL-Sockel'
+                                    ? `Kombinierte STL mit ${exportWallThickness}mm Leuchten-Wandstärke - druckfertig`
+                                    : 'Kombinierte STL mit dünner Leuchte'
+                                : 'Benötigt Leuchte und STL-Sockel'
                             }
                         </div>
                     </button>
@@ -251,7 +251,7 @@ const ExportControls = ({ audioData, geometry, baseGeometry, vaseSettings, onGen
                     className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                 >
                     <RotateCcw className="w-4 h-4" />
-                    Druckfreundliche Vase Generieren
+                    Druckfreundliche Leuchte Generieren
                 </button>
 
                 <button
@@ -274,9 +274,9 @@ const ExportControls = ({ audioData, geometry, baseGeometry, vaseSettings, onGen
             <div className="mt-4 text-sm text-blue-200">
                 <p className="mb-2 font-medium">🚀 Optimierter 3D-Druck Workflow:</p>
                 <div className="space-y-1">
-                    <p>1. 🎵 MP3-Datei hochladen → automatisch druckfreundliche Vase generieren</p>
+                    <p>1. 🎵 MP3-Datei hochladen → automatisch druckfreundliche Leuchte generieren</p>
                     <p>2. 🏺 STL-Sockel hochladen (optional)</p>
-                    <p>3. ⚙️ 3D-Druck-Parameter in Vase-Einstellungen anpassen</p>
+                    <p>3. ⚙️ 3D-Druck-Parameter in Leuchten-Einstellungen anpassen</p>
                     <p>4. 📏 Export-Wandstärke in mm für 3D-Druck wählen</p>
                     <p>5. 🛡️ "Dicke Wände" aktivieren für stabilen Druck</p>
                     <p>6. 📥 STL exportieren → DIREKT druckbar!</p>
@@ -296,7 +296,7 @@ const ExportControls = ({ audioData, geometry, baseGeometry, vaseSettings, onGen
                     <div className="mt-3 p-3 bg-blue-900/20 rounded border border-blue-500/30">
                         <p className="text-blue-200 text-xs">
                             ✅ <strong>Druckfertig:</strong> STL hat echte {exportWallThickness}mm Seitenwände.
-                            Außen- und Innenwand korrekt vernetzt. Oben/unten offen für echte Vase.
+                            Außen- und Innenwand korrekt vernetzt. Oben/unten offen für echte Leuchte.
                         </p>
                     </div>
                 )}
@@ -305,7 +305,7 @@ const ExportControls = ({ audioData, geometry, baseGeometry, vaseSettings, onGen
                     <div className="mt-3 p-3 bg-yellow-900/20 rounded border border-yellow-500/30">
                         <p className="text-yellow-200 text-xs">
                             ⚠️ <strong>Nur Oberfläche:</strong> Diese STL ist extrem dünn und nur für Visualisierung geeignet.
-                            Aktiviere "Dicke Seitenwände" für druckbare Vasen.
+                            Aktiviere "Dicke Seitenwände" für druckbare Leuchten.
                         </p>
                     </div>
                 )}

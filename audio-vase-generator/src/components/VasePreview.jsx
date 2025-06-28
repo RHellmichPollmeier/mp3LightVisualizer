@@ -35,13 +35,13 @@ const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = 
             </div>
             <div className="mt-4 space-y-2">
                 <div className="text-sm text-blue-200">
-                    ✨ Die Vase rotiert automatisch {isRefractionMode ? 'mit spektakulären Lichtbrechungseffekten' : 'in optimaler Beleuchtung'}
+                    ✨ Die Leuchte rotiert automatisch {isRefractionMode ? 'mit spektakulären Lichtbrechungseffekten' : 'in optimaler Beleuchtung'}
                 </div>
 
                 {isRefractionMode ? (
                     <div className="space-y-2">
                         <div className="text-xs text-purple-300 bg-purple-900/20 rounded p-2">
-                            🌈 <strong>Lichtbrechungs-Modus:</strong> Mehrfarbige Lichtquellen am Vasenboden erzeugen
+                            🌈 <strong>Lichtbrechungs-Modus:</strong> Mehrfarbige Lichtquellen am Leuchtenboden erzeugen
                             realistische Brechungseffekte durch das transparente Glasmaterial
                         </div>
                         <div className="text-xs text-pink-300 bg-pink-900/20 rounded p-2">
@@ -49,7 +49,7 @@ const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = 
                             für lebendige Reflexionen und Brechungen
                         </div>
                         <div className="text-xs text-cyan-300 bg-cyan-900/20 rounded p-2">
-                            🌟 <strong>Volumetrische Lichtstrahlen:</strong> Sichtbare Lichtkegel zeigen den Lichtweg durch die Vase
+                            🌟 <strong>Volumetrische Lichtstrahlen:</strong> Sichtbare Lichtkegel zeigen den Lichtweg durch die Leuchte
                         </div>
                         <div className="text-xs text-amber-300 bg-amber-900/20 rounded p-2">
                             ✨ <strong>Caustic-Effekte:</strong> Realistische Lichtbrechungsmuster werden am Boden projiziert
@@ -64,18 +64,18 @@ const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = 
                             🌀 <strong>Wellenmuster:</strong> Spiralförmige Oberflächenrillen verstärken die Lichtbrechung
                         </div>
                         <div className="text-xs text-violet-300 bg-violet-900/20 rounded p-2">
-                            🎯 <strong>Y-Position:</strong> Innenlicht bei {Math.round((lightingSettings.innerLightY || 0.33) * 100)}% der Vasenhöhe für individuelle Stimmung
+                            🎯 <strong>Y-Position:</strong> Innenlicht bei {Math.round((lightingSettings.innerLightY || 0.33) * 100)}% der Leuchtenhöhe für individuelle Stimmung
                         </div>
                         {baseGeometry && (
                             <div className="text-xs text-yellow-300 bg-yellow-900/20 rounded p-2">
-                                🏺 <strong>STL-Sockel:</strong> Automatisch angepasst - Vase sitzt stabil auf dem Sockel
+                                🏺 <strong>STL-Sockel:</strong> Automatisch angepasst - Leuchte sitzt stabil auf dem Sockel
                             </div>
                         )}
                     </div>
                 ) : (
                     <div className="space-y-2">
                         <div className="text-xs text-blue-300 bg-blue-900/20 rounded p-2">
-                            🔆 <strong>Hell-Modus:</strong> Optimale Beleuchtung zum Betrachten der Vasenform
+                            🔆 <strong>Hell-Modus:</strong> Optimale Beleuchtung zum Betrachten der Leuchtenform
                             und Anpassen der Parameter
                         </div>
                         <div className="text-xs text-green-300 bg-green-900/20 rounded p-2">
@@ -93,7 +93,7 @@ const VasePreview = ({ geometry, material, lightingSettings, isRefractionMode = 
                         </div>
                         {baseGeometry && (
                             <div className="text-xs text-orange-300 bg-orange-900/20 rounded p-2">
-                                🏺 <strong>STL-Sockel:</strong> Sockel steht stabil auf dem Boden, Vase sitzt perfekt darauf
+                                🏺 <strong>STL-Sockel:</strong> Sockel steht stabil auf dem Boden, Leuchte sitzt perfekt darauf
                             </div>
                         )}
                     </div>

@@ -316,7 +316,7 @@ const BaseUpload = ({ baseSTL, baseGeometry, onSTLUpload, onGeometryLoaded }) =>
             <div className="bg-purple-900/20 rounded-lg p-4 border border-purple-500/30">
                 <h3 className="text-purple-200 font-medium mb-2">🎯 Schritt 2: Auflagefläche wählen</h3>
                 <p className="text-purple-200 text-sm mb-3">
-                    Wo auf dem Sockel soll die Vase platziert werden?
+                    Wo auf dem Sockel soll die Leuchte platziert werden?
                 </p>
 
                 <div className="space-y-3">
@@ -424,7 +424,7 @@ const BaseUpload = ({ baseSTL, baseGeometry, onSTLUpload, onGeometryLoaded }) =>
 
             <div className="mt-3 text-green-200 text-sm space-y-1">
                 <p>• <strong>Orientierung:</strong> {currentOrientation === 'auto' ? 'Automatisch' : `Unterseite: ${currentOrientation}`}</p>
-                <p>• <strong>Vase-Position:</strong> X: {placementPosition.x}, Z: {placementPosition.z}</p>
+                <p>• <strong>Leuchten-Position:</strong> X: {placementPosition.x}, Z: {placementPosition.z}</p>
                 <p>• <strong>Status:</strong> Bereit für 3D-Vorschau und Export</p>
             </div>
         </div>
@@ -473,7 +473,7 @@ const BaseUpload = ({ baseSTL, baseGeometry, onSTLUpload, onGeometryLoaded }) =>
                     <h3 className="text-blue-200 font-medium mb-2">🎯 Erweiterte Sockel-Kontrolle</h3>
                     <div className="text-blue-200 text-sm space-y-1">
                         <p>• <strong>Schritt 1:</strong> Definiere welche Seite des Sockels die Unterseite ist</p>
-                        <p>• <strong>Schritt 2:</strong> Wähle die exakte Position auf dem Sockel für die Vase</p>
+                        <p>• <strong>Schritt 2:</strong> Wähle die exakte Position auf dem Sockel für die Leuchte</p>
                         <p>• <strong>Vorschau:</strong> Echtzeit 3D-Anzeige während der Konfiguration</p>
                         <p>• <strong>Präzision:</strong> Manuelle Kontrolle für perfekte Platzierung</p>
                         <p>• <strong>Export:</strong> Garantiert korrekte STL-Dateien für 3D-Druck</p>

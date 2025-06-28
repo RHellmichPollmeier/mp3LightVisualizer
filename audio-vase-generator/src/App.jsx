@@ -162,7 +162,7 @@ const App = () => {
                 : 'text-blue-200 hover:text-white hover:bg-white/10'
                 }`}
             >
-              🏺 Vase
+              🏺 Leuchte
             </button>
           </div>
 
@@ -208,7 +208,7 @@ const App = () => {
                           <div className="text-blue-200 text-sm">
                             {isRefractionMode
                               ? 'Spektakuläre Lichtbrechungseffekte'
-                              : 'Optimale Sicht auf die Vase'
+                              : 'Optimale Sicht auf die Leuchte'
                             }
                           </div>
                         </div>
@@ -229,7 +229,7 @@ const App = () => {
                     </div>
 
                     <div className="text-xs text-blue-200 space-y-1">
-                      <p><strong>Hell-Modus:</strong> Normale Beleuchtung, perfekt zum Betrachten der Vasenform</p>
+                      <p><strong>Hell-Modus:</strong> Normale Beleuchtung, perfekt zum Betrachten der Leuchtenform</p>
                       <p><strong>Lichtbrechungs-Modus:</strong> Dunkle Szene mit volumetrischen Lichteffekten</p>
                     </div>
                   </div>
@@ -275,18 +275,18 @@ const App = () => {
 
       {/* Info - Aktualisiert mit volumetrischen Effekten und organischer Kontur-Glättung */}
       <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-        <h3 className="text-lg font-semibold text-white mb-3">✨ Vollständige Audio-Vase mit Organischer Kontur-Glättung</h3>
+        <h3 className="text-lg font-semibold text-white mb-3">✨ Vollständige Audio-Leuchte mit Organischer Kontur-Glättung</h3>
         <div className="text-blue-200 space-y-2">
           <p>🌊 <strong>Organische Kontur-Glättung:</strong> Catmull-Rom Splines für keramikartige, handwerkliche Formen</p>
           <p>🎯 <strong>3 Optimierungs-Modi:</strong> Perfekt Druckbar, Ausgewogen, Audio Priorität</p>
           <p>🏺 <strong>Handwerkliche Ästhetik:</strong> Fließende Übergänge wie von Meister-Töpfern gefertigt</p>
-          <p>🔆 <strong>Hell-Modus:</strong> Optimale Beleuchtung zum Betrachten und Anpassen der Vasenform</p>
+          <p>🔆 <strong>Hell-Modus:</strong> Optimale Beleuchtung zum Betrachten und Anpassen der Leuchtenform</p>
           <p>🌈 <strong>Lichtbrechungs-Modus:</strong> Spektakuläre Lichteffekte mit volumetrischen Lichtstrahlen</p>
-          <p>🌟 <strong>Volumetrische Lichtstrahlen:</strong> Sichtbare Lichtkegel zeigen den Lichtweg durch die Vase</p>
-          <p>✨ <strong>Caustic-Effekte:</strong> Realistische Lichtbrechungsmuster am Boden wie in echten Glasvasen</p>
+          <p>🌟 <strong>Volumetrische Lichtstrahlen:</strong> Sichtbare Lichtkegel zeigen den Lichtweg durch die Leuchte</p>
+          <p>✨ <strong>Caustic-Effekte:</strong> Realistische Lichtbrechungsmuster am Boden wie in echten Glasleuchten</p>
           <p>💫 <strong>Lichtpartikel:</strong> Schwebende "Staub"-Teilchen machen Lichtstrahlen in der Luft sichtbar</p>
-          <p>🏺 <strong>STL-Sockel:</strong> Perfekt passender Sockel - Vase sitzt exakt auf der Oberseite</p>
-          <p>🌀 <strong>Spiralwellen:</strong> Elegante gedrehte Rillen wie in handwerklichen Glasvasen</p>
+          <p>🏺 <strong>STL-Sockel:</strong> Perfekt passender Sockel - Leuchte sitzt exakt auf der Oberseite</p>
+          <p>🌀 <strong>Spiralwellen:</strong> Elegante gedrehte Rillen wie in handwerklichen Glasleuchten</p>
           <p>🧱 <strong>Materialstärke:</strong> Von hauchzartem 0.5mm bis zu massiven 8mm Glas</p>
           <p>🎯 <strong>Y-Position:</strong> Präzise Kontrolle der Innenlicht-Position von Boden bis Spitze</p>
           <p>🎨 <strong>Kontur-Stützpunkte:</strong> 4-16 Punkte für organische Spline-Interpolation</p>
@@ -297,7 +297,7 @@ const App = () => {
           <p>🔄 Echtzeit-Animation aller Lichteffekte für lebendige Brechungseffekte</p>
           <p>🌊 Physikalisch korrekte Caustics simulieren echte Glaslichtbrechung</p>
           <p>📱 <strong>Neues Layout:</strong> 30% Settings-Panel, 70% 3D-Vorschau für optimale Bedienung</p>
-          <p>🔧 <strong>Getrennte Tabs:</strong> Upload, Licht-Einstellungen und Vase-Einstellungen für bessere Organisation</p>
+          <p>🔧 <strong>Getrennte Tabs:</strong> Upload, Licht-Einstellungen und Leuchten-Einstellungen für bessere Organisation</p>
           <p>🖨️ <strong>3D-Druck Ready:</strong> Automatische Überhang-Korrektur und Support-freie organische Formen</p>
         </div>
       </div>
