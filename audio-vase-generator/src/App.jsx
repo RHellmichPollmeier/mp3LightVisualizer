@@ -45,14 +45,20 @@ const App = () => {
     frequencyInfluence: 1.5,
     organicComplexity: 1.3,
     verticalDistortion: 0.8,
-    // NEUE WELLENMUSTER-EINSTELLUNGEN
-    wavePattern: {
+    // NEUE LAMELLEN-EINSTELLUNGEN (getrennt von Wellenmustern)
+    lamellen: {
       enabled: true,
-      type: 'spiral',        // 'spiral', 'vertical', 'horizontal', 'diamond'
-      amplitude: 0.4,        // Stärke der Wellen
-      frequency: 12,         // Anzahl der Wellen
-      spiralTurns: 3.0,      // Spiralwindungen (nur für Spiral-Typ)
-      phase: 0,              // Phasenverschiebung in Grad
+      count: 24,              // Anzahl der horizontalen Rillen
+      depth: 0.6              // Tiefe der Rillen (nach außen/innen)
+    },
+    // WELLENMUSTER-EINSTELLUNGEN (für Spiralen etc.)
+    wavePattern: {
+      enabled: false,          // Standardmäßig ausgeschaltet
+      type: 'spiral',
+      amplitude: 0.4,
+      frequency: 12,
+      spiralTurns: 3.0,
+      phase: 0,
       lamellenDepth: 0.6
     },
     // 3D-DRUCK OPTIMIERUNG - ERWEITERT mit Kontur-Glättung

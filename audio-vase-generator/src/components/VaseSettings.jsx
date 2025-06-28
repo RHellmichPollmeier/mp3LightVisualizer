@@ -302,6 +302,102 @@ const VaseSettings = ({ settings, onChange }) => {
                     </div>
                 </div>
 
+                {/* LAMELLEN SEKTION */}
+                <div className="border-b border-white/20 pb-4">
+                    <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                        <Waves className="w-4 h-4" />
+                        Horizontale Lamellen
+                    </h3>
+
+                    <div className="space-y-3">
+                        {/* Lamellen Ein/Aus */}
+                        <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                            <div>
+                                <div className="text-white font-medium">Lamellen aktivieren</div>
+                                <div className="text-blue-200 text-sm">Horizontale Rillen als finale Schicht</div>
+                            </div>
+                            <button
+                                onClick={() => handleChange('lamellen', { ...settings.lamellen, enabled: !settings.lamellen?.enabled })}
+                                className={`relative w-12 h-6 rounded-full transition-all duration-300 ${settings.lamellen?.enabled
+                                    ? 'bg-blue-600 shadow-lg shadow-blue-500/50'
+                                    : 'bg-gray-600'
+                                    }`}
+                            >
+                                <div
+                                    className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 ${settings.lamellen?.enabled ? 'transform translate-x-6' : ''
+                                        }`}
+                                />
+                            </button>
+                        </div>
+
+                        {settings.lamellen?.enabled && (
+                            <>
+                                {/* Lamellen-Anzahl */}
+                                <div>
+                                    <label className="block text-white text-sm mb-2">
+                                        Anzahl Lamellen: {settings.lamellen?.count || 24}
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="8"
+                                        max="64"
+                                        step="4"
+                                        value={settings.lamellen?.count || 24}
+                                        onChange={(e) => handleChange('lamellen', { ...settings.lamellen, count: Number(e.target.value) })}
+                                        className="w-full"
+                                    />
+                                </div>
+
+                                {/* Lamellen-Tiefe */}
+                                <div>
+                                    <label className="block text-white text-sm mb-2">
+                                        Lamellen-Tiefe: {(settings.lamellen?.depth || 0.6).toFixed(1)}
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="0.2"
+                                        max="2.0"
+                                        step="0.1"
+                                        value={settings.lamellen?.depth || 0.6}
+                                        onChange={(e) => handleChange('lamellen', { ...settings.lamellen, depth: Number(e.target.value) })}
+                                        className="w-full"
+                                    />
+                                </div>
+
+                                {/* Lamellen Presets */}
+                                <div className="grid grid-cols-3 gap-2 mt-4">
+                                    <button
+                                        onClick={() => handleChange('lamellen', { enabled: true, count: 16, depth: 0.4 })}
+                                        className="p-2 bg-blue-600/30 hover:bg-blue-600/50 rounded text-white text-xs transition-colors"
+                                    >
+                                        🪴 Subtil<br />16 × 0.4
+                                    </button>
+                                    <button
+                                        onClick={() => handleChange('lamellen', { enabled: true, count: 24, depth: 0.6 })}
+                                        className="p-2 bg-green-600/30 hover:bg-green-600/50 rounded text-white text-xs transition-colors"
+                                    >
+                                        🏺 Klassisch<br />24 × 0.6
+                                    </button>
+                                    <button
+                                        onClick={() => handleChange('lamellen', { enabled: true, count: 40, depth: 1.0 })}
+                                        className="p-2 bg-orange-600/30 hover:bg-orange-600/50 rounded text-white text-xs transition-colors"
+                                    >
+                                        💫 Stark<br />40 × 1.0
+                                    </button>
+                                </div>
+
+                                <div className="text-xs text-blue-200 bg-blue-900/20 rounded p-2">
+                                    🏺 <strong>Lamellen werden als finale Schicht aufgetragen:</strong><br />
+                                    • Horizontale Rillen über die gesamte Außenkontur<br />
+                                    • Anzahl bestimmt die Dichte der Rillen<br />
+                                    • Tiefe bestimmt wie stark sie hervortreten/eingedrückt sind<br />
+                                    • Werden nach allen anderen Effekten angewendet
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+
                 {/* WELLENMUSTER SEKTION */}
                 <div className="border-b border-white/20 pb-4">
                     <h3 className="text-white font-medium mb-3 flex items-center gap-2">
