@@ -424,7 +424,7 @@ const VaseSettings = ({ settings, onChange }) => {
                                 </div>
 
                                 {/* Wellenmuster Presets */}
-                                <div className="grid grid-cols-2 gap-2 mt-4">
+                                <div className="grid grid-cols-3 gap-2 mt-4">
                                     <button
                                         onClick={() => handleWaveChange('enabled', true) || onChange(prev => ({
                                             ...prev,
@@ -434,7 +434,8 @@ const VaseSettings = ({ settings, onChange }) => {
                                                 amplitude: 0.4,
                                                 frequency: 12,
                                                 spiralTurns: 3,
-                                                phase: 0
+                                                phase: 0,
+                                                lamellenDepth: 0.6
                                             }
                                         }))}
                                         className="p-2 bg-yellow-600/30 hover:bg-yellow-600/50 rounded text-white text-xs transition-colors"
@@ -446,11 +447,29 @@ const VaseSettings = ({ settings, onChange }) => {
                                             ...prev,
                                             wavePattern: {
                                                 enabled: true,
+                                                type: 'lamellen',
+                                                amplitude: 0.4,
+                                                frequency: 24,         // Mehr Rillen für feinere Struktur
+                                                spiralTurns: 3,
+                                                phase: 0,
+                                                lamellenDepth: 0.8
+                                            }
+                                        }))}
+                                        className="p-2 bg-orange-600/30 hover:bg-orange-600/50 rounded text-white text-xs transition-colors"
+                                    >
+                                        🏺 Lamellen
+                                    </button>
+                                    <button
+                                        onClick={() => handleWaveChange('enabled', true) || onChange(prev => ({
+                                            ...prev,
+                                            wavePattern: {
+                                                enabled: true,
                                                 type: 'spiral',
                                                 amplitude: 0.6,
                                                 frequency: 16,
                                                 spiralTurns: 5,
-                                                phase: 45
+                                                phase: 45,
+                                                lamellenDepth: 0.6
                                             }
                                         }))}
                                         className="p-2 bg-purple-600/30 hover:bg-purple-600/50 rounded text-white text-xs transition-colors"

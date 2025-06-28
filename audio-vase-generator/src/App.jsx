@@ -52,7 +52,8 @@ const App = () => {
       amplitude: 0.4,        // Stärke der Wellen
       frequency: 12,         // Anzahl der Wellen
       spiralTurns: 3.0,      // Spiralwindungen (nur für Spiral-Typ)
-      phase: 0               // Phasenverschiebung in Grad
+      phase: 0,              // Phasenverschiebung in Grad
+      lamellenDepth: 0.6
     },
     // 3D-DRUCK OPTIMIERUNG - ERWEITERT mit Kontur-Glättung
     printOptimization: {

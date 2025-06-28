@@ -5,6 +5,57 @@ import * as THREE from 'three';
 import { PerlinNoise } from '../utils/perlinNoise.js';
 import { smoothAudioData } from '../utils/audioAnalysis.js';
 
+// ============================================
+// LAMELLEN-STRUKTUR auf fertiger Oberfläche
+// ============================================
+// ============================================
+// VERTIKALE LAMELLEN-STRUKTUR (nur nach außen)
+// ============================================
+const applyLamellen = (positions, segments, heightSegments, lamellenSettings) => {
+    if (!lamellenSettings.enabled || lamellenSettings.type !== 'lamellen') return;
+
+    const { frequency: lamellenCount, amplitude: lamellenDepth, lamellenDepth: depthMultiplier } = lamellenSettings;
+    const actualDepth = (lamellenDepth || 0.4) * (depthMultiplier || 0.6) * 0.3; // Sichtbare Tiefe
+
+    console.log(`🏺 Anwenden von ${lamellenCount} VERTIKALEN Lamellen (nur nach außen) mit Tiefe ${actualDepth}...`);
+
+    // Für jeden Vertex
+    for (let h = 0; h < heightSegments + 1; h++) {
+        for (let s = 0; s <= segments; s++) {
+            const vertexIndex = h * (segments + 1) + s;
+            const i3 = vertexIndex * 3;
+
+            if (i3 + 2 >= positions.length) continue;
+
+            const x = positions[i3];
+            const z = positions[i3 + 2];
+            const currentRadius = Math.sqrt(x * x + z * z);
+
+            if (currentRadius > 0) {
+                // Winkel dieses Vertex um die Y-Achse
+                const angle = Math.atan2(z, x);
+
+                // Vertikale Lamellen: Position basierend auf Winkel
+                const lamellenPhase = angle * lamellenCount + Math.PI;
+                const lamellenIntensity = Math.sin(lamellenPhase);
+
+                // NUR POSITIVE Offsets (nur nach außen!)
+                const lamellenOffset = Math.max(0, lamellenIntensity) * actualDepth;
+
+                // Normale zur Oberfläche (radial nach außen)
+                const normalX = x / currentRadius;
+                const normalZ = z / currentRadius;
+
+                // Lamellen nur nach außen anwenden
+                positions[i3] += normalX * lamellenOffset;
+                positions[i3 + 2] += normalZ * lamellenOffset;
+            }
+        }
+    }
+
+    console.log(`✅ Vertikale Lamellen-Struktur angewendet: ${lamellenCount} Rillen nur nach außen`);
+};
+
 export const createVaseGeometry = (audioData, settings, perlinNoise) => {
     if (!audioData || audioData.length === 0) return null;
 
@@ -197,6 +248,9 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
         smoothGeometry(positions, segments, heightSegments, 2);
     }
 
+    if (wavePattern && wavePattern.enabled && wavePattern.type === 'lamellen') {
+        applyLamellen(positions, segments, heightSegments, wavePattern);
+    }
     // Geometrie aktualisieren
     geometry.attributes.position.needsUpdate = true;
     geometry.computeVertexNormals();
@@ -551,6 +605,11 @@ const calculateWavePattern = (angle, normalizedY, wavePattern, amplitude, freque
             const diamondPattern = Math.sin(angle * waveFreq + normalizedY * Math.PI * 4 + phaseRad) +
                 Math.sin((angle + Math.PI / 4) * waveFreq - normalizedY * Math.PI * 4 + phaseRad);
             waveValue = diamondPattern * waveAmp * 0.5;
+            break;
+
+        case 'lamellen':
+            // Keine Wave-Berechnung - wird separat angewendet
+            waveValue = 0;
             break;
     }
 
