@@ -136,14 +136,20 @@ export const createVaseGeometry = (audioData, settings, perlinNoise) => {
 // ============================================
 // NEUE FINALE LAMELLEN-FUNKTION - NUR NACH AUSSEN!
 // ============================================
+// ============================================
+// NEUE FINALE LAMELLEN-FUNKTION - MIT EINSTELLBARER BREITE!
+// ============================================
+// ============================================
+// NEUE FINALE LAMELLEN-FUNKTION - MIT EINSTELLBARER BREITE!
+// ============================================
 const applyLamellenFinal = (geometry, lamellenSettings) => {
     const positions = geometry.attributes.position.array;
     const vertexCount = positions.length / 3;
 
     console.log(`🔧 Finale Lamellen-Anwendung auf ${vertexCount} Vertices...`);
-    console.log(`📊 Settings: count=${lamellenSettings.count}, depth=${lamellenSettings.depth}`);
+    console.log(`📊 Settings: count=${lamellenSettings.count}, depth=${lamellenSettings.depth}, width=${lamellenSettings.width || 0.5}`);
 
-    const { count, depth } = lamellenSettings;
+    const { count, depth, width = 0.5 } = lamellenSettings;
     const lamellenDepth = depth * 0.15; // Basis-Tiefe für deutliche Rillen
 
     // Jeder Vertex einzeln bearbeiten
@@ -160,13 +166,47 @@ const applyLamellenFinal = (geometry, lamellenSettings) => {
             const angle = Math.atan2(z, x);
             const normalizedAngle = (angle + Math.PI) / (2 * Math.PI); // 0 bis 1
 
-            // VERTIKALE Lamellen basierend auf Winkel-Position
-            // Jede Lamelle verläuft von oben nach unten
-            const lamellenPhase = normalizedAngle * count * Math.PI * 2;
-            const lamellenWave = Math.sin(lamellenPhase);
+            // ===== NEUE RECHTECK-WELLENFORM mit einstellbarer Breite =====
+            const lamellenPhase = normalizedAngle * count; // Anzahl Zyklen
+            const cyclePosition = (lamellenPhase % 1); // 0 bis 1 innerhalb eines Zyklus
 
-            // VOLLSTÄNDIGE Sinuswelle nutzen für echte Rillen (positiv UND negativ)
-            // Positive Werte = nach außen, negative Werte = nach innen (Rillen)
+            let lamellenWave;
+
+            // Rechteck-Welle mit einstellbarer Rille-zu-Erhebung Verhältnis
+            if (cyclePosition < width) {
+                // RILLE (nach innen) - Breite wird durch 'width' gesteuert
+                lamellenWave = -1.0; // Vollständig nach innen
+            } else {
+                // ERHEBUNG (nach außen) - Rest des Zyklus
+                lamellenWave = 1.0; // Vollständig nach außen
+            }
+
+            // Glättung der Kanten für bessere Druckbarkeit
+            const edgeSmoothing = 0.1; // 10% der Zykluslänge für weiche Übergänge
+
+            if (cyclePosition < edgeSmoothing) {
+                // Weicher Übergang am Beginn der Rille
+                const t = cyclePosition / edgeSmoothing;
+                lamellenWave = Math.cos(t * Math.PI) * 0.5 + 0.5; // 1 → -1
+                lamellenWave = 1.0 - 2.0 * lamellenWave; // Invertieren für Rille
+            } else if (cyclePosition > width - edgeSmoothing && cyclePosition < width) {
+                // Weicher Übergang am Ende der Rille
+                const t = (cyclePosition - (width - edgeSmoothing)) / edgeSmoothing;
+                lamellenWave = Math.cos((1 - t) * Math.PI) * 0.5 + 0.5; // -1 → 1
+                lamellenWave = 1.0 - 2.0 * lamellenWave; // Invertieren für Rille
+            } else if (cyclePosition > width && cyclePosition < width + edgeSmoothing) {
+                // Weicher Übergang am Beginn der Erhebung
+                const t = (cyclePosition - width) / edgeSmoothing;
+                lamellenWave = Math.cos(t * Math.PI) * 0.5 + 0.5; // -1 → 1
+                lamellenWave = 2.0 * lamellenWave - 1.0;
+            } else if (cyclePosition > 1.0 - edgeSmoothing) {
+                // Weicher Übergang am Ende der Erhebung
+                const t = (cyclePosition - (1.0 - edgeSmoothing)) / edgeSmoothing;
+                lamellenWave = Math.cos((1 - t) * Math.PI) * 0.5 + 0.5; // 1 → -1
+                lamellenWave = 2.0 * lamellenWave - 1.0;
+            }
+
+            // Radiale Offset-Berechnung
             const lamellenOffset = lamellenWave * lamellenDepth;
 
             // Radiale Skalierung anwenden
@@ -179,9 +219,10 @@ const applyLamellenFinal = (geometry, lamellenSettings) => {
         }
     }
 
-    console.log(`✅ ${count} perfekt vertikale Lamellen-Rillen (von oben nach unten) als finale Schicht aufgetragen`);
+    console.log(`✅ ${count} perfekt vertikale Lamellen-Rillen mit ${Math.round(width * 100)}% Rillen-Breite erstellt`);
     console.log(`📐 Lamellen-Tiefe: ±${lamellenDepth.toFixed(3)}cm (rein UND raus für echte Rillen)`);
-    console.log(`🏺 Rillen verlaufen vertikal entlang der Außenkontur`);
+    console.log(`📏 Rillen-Breite: ${Math.round(width * 100)}% (${width < 0.3 ? 'schmale Linien' : width < 0.7 ? 'ausgewogene Rillen' : 'breite Rillen'})`);
+    console.log(`🏺 Rillen verlaufen vertikal entlang der Außenkontur mit weichen Übergängen`);
 };
 
 // ============================================

@@ -49,7 +49,8 @@ const App = () => {
     lamellen: {
       enabled: true,
       count: 24,              // Anzahl der horizontalen Rillen
-      depth: 0.6              // Tiefe der Rillen (nach außen/innen)
+      depth: 0.6,             // Tiefe der Rillen (nach außen/innen)
+      width: 0.5              // Breite der Rillen (10% = schmal, 90% = breit)
     },
     // WELLENMUSTER-EINSTELLUNGEN (für Spiralen etc.)
     wavePattern: {

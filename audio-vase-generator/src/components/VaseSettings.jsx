@@ -364,25 +364,45 @@ const VaseSettings = ({ settings, onChange }) => {
                                     />
                                 </div>
 
+                                {/* NEUE LAMELLEN-BREITE */}
+                                <div>
+                                    <label className="block text-white text-sm mb-2">
+                                        Lamellen-Breite: {Math.round((settings.lamellen?.width || 0.5) * 100)}%
+                                        <span className="text-xs text-blue-300 ml-2">
+                                            ({(settings.lamellen?.width || 0.5) <= 0.3 ? 'Schmale Rillen' :
+                                                (settings.lamellen?.width || 0.5) <= 0.7 ? 'Ausgewogene Rillen' : 'Breite Rillen'})
+                                        </span>
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="0.1"
+                                        max="0.9"
+                                        step="0.05"
+                                        value={settings.lamellen?.width || 0.5}
+                                        onChange={(e) => handleChange('lamellen', { ...settings.lamellen, width: Number(e.target.value) })}
+                                        className="w-full"
+                                    />
+                                </div>
+
                                 {/* Lamellen Presets */}
                                 <div className="grid grid-cols-3 gap-2 mt-4">
                                     <button
-                                        onClick={() => handleChange('lamellen', { enabled: true, count: 16, depth: 0.4 })}
+                                        onClick={() => handleChange('lamellen', { enabled: true, count: 16, depth: 0.4, width: 0.3 })}
                                         className="p-2 bg-blue-600/30 hover:bg-blue-600/50 rounded text-white text-xs transition-colors"
                                     >
-                                        🪴 Subtil<br />16 × 0.4
+                                        🪴 Subtil<br />16 × 0.4 × 30%
                                     </button>
                                     <button
-                                        onClick={() => handleChange('lamellen', { enabled: true, count: 24, depth: 0.6 })}
+                                        onClick={() => handleChange('lamellen', { enabled: true, count: 24, depth: 0.6, width: 0.5 })}
                                         className="p-2 bg-green-600/30 hover:bg-green-600/50 rounded text-white text-xs transition-colors"
                                     >
-                                        🏺 Klassisch<br />24 × 0.6
+                                        🏺 Klassisch<br />24 × 0.6 × 50%
                                     </button>
                                     <button
-                                        onClick={() => handleChange('lamellen', { enabled: true, count: 40, depth: 1.0 })}
+                                        onClick={() => handleChange('lamellen', { enabled: true, count: 40, depth: 1.0, width: 0.7 })}
                                         className="p-2 bg-orange-600/30 hover:bg-orange-600/50 rounded text-white text-xs transition-colors"
                                     >
-                                        💫 Stark<br />40 × 1.0
+                                        💫 Stark<br />40 × 1.0 × 70%
                                     </button>
                                 </div>
 
