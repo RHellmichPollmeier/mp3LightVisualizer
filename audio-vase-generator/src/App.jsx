@@ -39,18 +39,18 @@ const App = () => {
     topRadius: 6,
     segments: 64,
     heightSegments: 100,
+    
+    // Hybrid Audio-Pipeline
     amplification: 3,
-    noiseIntensity: 1.2,
-    smoothing: 0.2,
-    frequencyInfluence: 1.5,
-    organicComplexity: 1.3,
-    verticalDistortion: 0.8,
-    // NEUE LAMELLEN-EINSTELLUNGEN (getrennt von Wellenmustern)
+    controlPoints: 12,
+    organicIntensity: 1.2,
+    
+    // Vertikale Lamellen (getrennt von Audio)
     lamellen: {
-      enabled: true,
-      count: 24,              // Anzahl der horizontalen Rillen
-      depth: 0.6,             // Tiefe der Rillen (nach außen/innen)
-      width: 0.5              // Breite der Rillen (10% = schmal, 90% = breit)
+        enabled: true,
+        count: 24,
+        depth: 0.6,
+        width: 0.5
     },
     // WELLENMUSTER-EINSTELLUNGEN (für Spiralen etc.)
     wavePattern: {

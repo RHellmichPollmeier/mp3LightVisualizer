@@ -8,129 +8,195 @@ import { smoothAudioData } from '../utils/audioAnalysis.js';
 export const createVaseGeometry = (audioData, settings, perlinNoise) => {
     if (!audioData || audioData.length === 0) return null;
 
-    const {
-        height, baseRadius, topRadius, segments, heightSegments,
-        amplification, noiseIntensity, smoothing, wavePattern,
-        printOptimization, lamellen
-    } = settings;
+    console.log('🎵 Hybrid Audio-Verarbeitung gestartet...');
 
-    console.log('🏺 Organische Vase-Generierung mit finalen Lamellen gestartet...');
+    // Pipeline ausführen
+    const frequencyWaves = audioToFrequencyWaves(audioData, settings);
+    const controlPoints = extractControlPointsFromWaves(frequencyWaves, settings.controlPoints || 12);
+    const organicPoints = addOrganicVariationsToControlPoints(controlPoints, settings, perlinNoise);
+    const splinePoints = createSmoothSplineFromOrganicPoints(organicPoints, settings.heightSegments);
 
-    // Audio-Daten normalisieren
-    const maxAmplitude = Math.max(...audioData.map(d => d.amplitude));
-    const normalizedAudio = audioData.map(d => ({
-        ...d,
-        amplitude: d.amplitude / (maxAmplitude || 1),
-        frequency: d.frequency / 22050
-    }));
+    // Geometrie erstellen
+    const geometry = new THREE.CylinderGeometry(
+        settings.topRadius, settings.baseRadius, settings.height,
+        settings.segments, settings.heightSegments, true
+    );
 
-    // Druckparameter
-    const printParams = {
-        enabled: printOptimization?.enabled || false,
-        maxOverhang: printOptimization?.maxOverhang || 45,
-        maxSpikeHeight: printOptimization?.spikeThreshold || 2.0,
-        audioPreservation: printOptimization?.audioPreservation || 0.85,
-        smoothingStrength: printOptimization?.smoothingStrength || 0.15,
-        contourSmoothingPoints: Math.max(16, Math.floor(normalizedAudio.length * 0.3))
-    };
-
-    const geometry = new THREE.CylinderGeometry(topRadius, baseRadius, height, segments, heightSegments, true);
     const positions = geometry.attributes.position.array;
 
-    // ===== AUDIO-BASIERTE GEOMETRIE ERZEUGUNG =====
-    const smoothedContour = printParams.enabled ?
-        createSmoothedContour(normalizedAudio, printParams.contourSmoothingPoints, printParams.audioPreservation) :
-        normalizedAudio;
-
-    let workingAudio = printParams.enabled ?
-        smoothedContour :
-        smoothAudioData(smoothAudioData(normalizedAudio, smoothing), smoothing * 0.5);
-
-    const maxRadiusChange = printParams.enabled ?
-        Math.min(amplification, printParams.maxSpikeHeight / 10) :
-        amplification;
-
-    // Geometrie mit Audio-Daten modifizieren
+    // Spline auf Geometrie anwenden
     for (let i = 0; i < positions.length; i += 3) {
         const x = positions[i];
         const y = positions[i + 1];
         const z = positions[i + 2];
 
-        const normalizedY = (y + height / 2) / height;
-        const angle = Math.atan2(z, x);
+        const normalizedY = (y + settings.height / 2) / settings.height;
+        const splineIndex = Math.floor(normalizedY * (splinePoints.length - 1));
+        const splinePoint = splinePoints[Math.min(splineIndex, splinePoints.length - 1)];
+
         const currentRadius = Math.sqrt(x * x + z * z);
+        const newRadius = Math.max(currentRadius * 0.3, currentRadius + splinePoint.radiusOffset);
 
-        // Audio-Interpolation
-        const audioValue = interpolateAudioData(workingAudio, normalizedY);
-        const amplitude = audioValue.amplitude;
-        const frequency = audioValue.frequency;
+        if (currentRadius > 0) {
+            const scale = newRadius / currentRadius;
+            positions[i] = x * scale;
+            positions[i + 2] = z * scale;
+        }
+    }
 
-        // Audio-Effekte
-        let amplitudeEffect = Math.pow(amplitude, 1.2) * maxRadiusChange * (1 + frequency * 0.3);
+    // Finale Lamellen anwenden (falls aktiviert)
+    if (settings.lamellen && settings.lamellen.enabled) {
+        applyLamellenFinal(geometry, settings.lamellen);
+    }
 
-        const noiseScale = printParams.enabled ? Math.min(noiseIntensity, 1.0) : noiseIntensity;
-        const noise1 = perlinNoise.noise(angle * 2 + frequency * 3, normalizedY * 6 + amplitude * 2, amplitude * 10) * 0.4;
-        const noise2 = perlinNoise.noise(angle * 6 + frequency * 8, normalizedY * 12 + amplitude * 4, amplitude * 20) * 0.2;
-        const combinedNoise = (noise1 + noise2) * noiseScale;
+    geometry.attributes.position.needsUpdate = true;
+    geometry.computeVertexNormals();
 
-        const frequencyWave = Math.sin(angle * frequency * 15 + normalizedY * Math.PI * 3) * frequency * 0.2 * maxRadiusChange;
+    console.log('✅ Hybrid Audio-Lampenschirm erstellt!');
+    return geometry;
+};
 
-        // Wellenmuster (außer Lamellen)
-        // Wellenmuster (NUR Spiralen etc., KEINE Lamellen!)
-        let waveEffect = 0;
-        if (wavePattern && wavePattern.enabled) {
-            waveEffect = calculateWavePattern(angle, normalizedY, wavePattern, amplitude, frequency);
-            if (printParams.enabled) {
-                waveEffect = Math.max(-maxRadiusChange * 0.3, Math.min(maxRadiusChange * 0.3, waveEffect));
+// ============================================
+// HYBRID-PIPELINE FUNKTIONEN
+// ============================================
+
+const audioToFrequencyWaves = (audioData, settings) => {
+    const waves = [];
+
+    for (let i = 0; i < audioData.length; i++) {
+        const audio = audioData[i];
+        const t = i / (audioData.length - 1);
+
+        let amplitudeWave = audio.amplitude * (settings.amplification || 3);
+
+        const frequencyDetail = Math.sin(t * Math.PI * audio.frequency * 10) *
+            audio.frequency * 0.3;
+
+        const harmonic1 = Math.sin(t * Math.PI * 4) * audio.amplitude * 0.2;
+        const harmonic2 = Math.sin(t * Math.PI * 8 + audio.frequency * 2) *
+            audio.amplitude * 0.1;
+
+        waves.push({
+            y: t,
+            amplitude: amplitudeWave + frequencyDetail + harmonic1 + harmonic2,
+            frequency: audio.frequency,
+            originalAmplitude: audio.amplitude,
+            time: audio.time
+        });
+    }
+
+    return waves;
+};
+
+const extractControlPointsFromWaves = (waves, numPoints) => {
+    const controlPoints = [];
+    const sectionSize = waves.length / numPoints;
+
+    for (let i = 0; i < numPoints; i++) {
+        const sectionStart = Math.floor(i * sectionSize);
+        const sectionEnd = Math.floor((i + 1) * sectionSize);
+        const section = waves.slice(sectionStart, sectionEnd);
+
+        let bestPoint = section[0];
+        let bestScore = 0;
+
+        for (let point of section) {
+            const amplitudeScore = Math.abs(point.amplitude) * 2;
+            const frequencyScore = point.frequency * 0.5;
+            const positionWeight = 1 + Math.sin(point.y * Math.PI) * 0.3;
+
+            const score = (amplitudeScore + frequencyScore) * positionWeight;
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestPoint = point;
             }
         }
 
-        let totalRadiusChange = amplitudeEffect + combinedNoise + frequencyWave + waveEffect;
+        controlPoints.push({
+            y: bestPoint.y,
+            radiusOffset: bestPoint.amplitude,
+            frequency: bestPoint.frequency,
+            originalAmplitude: bestPoint.originalAmplitude,
+            sectionIndex: i,
+            score: bestScore
+        });
+    }
 
-        // 3D-Druck Überhang-Korrektur (falls aktiviert)
-        if (printParams.enabled) {
-            // [Überhang-Korrektur Code wie vorher...]
+    return controlPoints;
+};
+
+const addOrganicVariationsToControlPoints = (controlPoints, settings, perlinNoise) => {
+    const organicPoints = [];
+    const organicIntensity = settings.organicIntensity || 1.2;
+
+    for (let i = 0; i < controlPoints.length; i++) {
+        const point = controlPoints[i];
+
+        const noiseX = point.y * 6;
+        const noiseY = point.frequency * 4;
+        const noiseZ = point.originalAmplitude * 8;
+
+        const organicVariation1 = perlinNoise.noise(noiseX, noiseY, noiseZ) * organicIntensity * 0.4;
+        const organicVariation2 = perlinNoise.noise(noiseX * 2.3, noiseY * 1.7, noiseZ * 0.8) * organicIntensity * 0.2;
+        const organicVariation3 = perlinNoise.noise(noiseX * 0.7, noiseY * 3.1, noiseZ * 1.5) * organicIntensity * 0.1;
+
+        const totalOrganicVariation = organicVariation1 + organicVariation2 + organicVariation3;
+
+        organicPoints.push({
+            y: point.y,
+            radiusOffset: point.radiusOffset + totalOrganicVariation,
+            frequency: point.frequency,
+            originalAmplitude: point.originalAmplitude,
+            organicContribution: totalOrganicVariation,
+            audioContribution: point.radiusOffset
+        });
+    }
+
+    return organicPoints;
+};
+
+const createSmoothSplineFromOrganicPoints = (organicPoints, resolution) => {
+    const splinePoints = [];
+
+    const extendedPoints = [
+        { y: -0.1, radiusOffset: organicPoints[0].radiusOffset },
+        ...organicPoints,
+        { y: 1.1, radiusOffset: organicPoints[organicPoints.length - 1].radiusOffset }
+    ];
+
+    for (let i = 0; i < resolution; i++) {
+        const t = i / (resolution - 1);
+
+        let segmentIndex = 0;
+        for (let j = 0; j < organicPoints.length - 1; j++) {
+            if (t >= organicPoints[j].y && t <= organicPoints[j + 1].y) {
+                segmentIndex = j + 1;
+                break;
+            }
         }
 
-        // Position berechnen
-        const newRadius = Math.max(currentRadius * 0.2, currentRadius + totalRadiusChange);
-        const verticalDistortionScale = printParams.enabled ? 0.3 : 0.8;
-        const verticalDistortion = perlinNoise.noise(angle * 1.5, normalizedY * 4, amplitude * 6) * amplitude * verticalDistortionScale;
+        const p0 = extendedPoints[Math.max(0, segmentIndex - 1)];
+        const p1 = extendedPoints[segmentIndex];
+        const p2 = extendedPoints[Math.min(extendedPoints.length - 1, segmentIndex + 1)];
+        const p3 = extendedPoints[Math.min(extendedPoints.length - 1, segmentIndex + 2)];
 
-        positions[i] = (x / currentRadius) * newRadius;
-        positions[i + 1] = y + (printParams.enabled ?
-            Math.max(-0.5, Math.min(0.5, verticalDistortion)) :
-            verticalDistortion);
-        positions[i + 2] = (z / currentRadius) * newRadius;
+        const segmentLength = p2.y - p1.y;
+        const localT = segmentLength > 0 ? (t - p1.y) / segmentLength : 0;
+
+        const radiusOffset = catmullRomInterpolateGentle(
+            p0.radiusOffset, p1.radiusOffset,
+            p2.radiusOffset, p3.radiusOffset,
+            localT, 0.5
+        );
+
+        splinePoints.push({
+            y: t,
+            radiusOffset: radiusOffset
+        });
     }
 
-    // Nachbearbeitung
-    if (printParams.enabled) {
-        smoothGeometryForPrinting(positions, segments, heightSegments, printParams);
-        reduceSharpSpikes(positions, segments, heightSegments, printParams);
-    } else {
-        smoothGeometry(positions, segments, heightSegments, 2);
-    }
-
-    // ===== SCHRITT 1: Geometrie KOMPLETT fertigstellen =====
-    geometry.attributes.position.needsUpdate = true;
-    geometry.computeVertexNormals(); // WICHTIG: Normalen berechnen BEVOR Lamellen
-
-    // ===== SCHRITT 2: LAMELLEN als ALLERLETZTE Schicht aufbringen =====
-    if (lamellen && lamellen.enabled) {
-        console.log('🏺 Trage vertikale Lamellen als finale Schicht auf...');
-        applyLamellenFinal(geometry, lamellen);
-
-        // ===== SCHRITT 3: Finale Geometrie-Aktualisierung =====
-        geometry.attributes.position.needsUpdate = true;
-        geometry.computeVertexNormals(); // Normalen nach Lamellen neu berechnen
-
-        console.log(`✅ Organische Vase mit ${lamellen.count} finalen vertikalen Lamellen (Tiefe: ${lamellen.depth}) erstellt!`);
-    } else {
-        console.log('✅ Organische Vase ohne Lamellen erstellt!');
-    }
-
-    return geometry;
+    return splinePoints;
 };
 
 // ============================================
@@ -229,206 +295,10 @@ const applyLamellenFinal = (geometry, lamellenSettings) => {
 // HILFSFUNKTIONEN (unverändert)
 // ============================================
 
-const createSmoothedContour = (audioData, controlPoints = 16, audioPreservation = 0.85) => {
-    console.log(`🌊 Erstelle Audio-erhaltende Kontur mit ${controlPoints} Stützpunkten...`);
-    const adaptivePoints = Math.max(controlPoints, Math.floor(audioData.length * 0.15));
-    const keyPoints = extractKeyPointsPreservative(audioData, adaptivePoints, audioPreservation);
-    const smoothedPoints = interpolateSplinePreservative(keyPoints, audioData.length);
-    const contourWithAudio = blendWithOriginalAudio(smoothedPoints, audioData, audioPreservation);
-    console.log(`📈 Audio-erhaltende Kontur: ${keyPoints.length} Schlüssel → ${contourWithAudio.length} Punkte`);
-    return contourWithAudio;
-};
-
-const extractKeyPointsPreservative = (audioData, numPoints, preservation) => {
-    const keyPoints = [];
-    if (numPoints >= audioData.length * 0.8) {
-        const step = audioData.length / numPoints;
-        for (let i = 0; i < numPoints; i++) {
-            const index = Math.min(Math.floor(i * step), audioData.length - 1);
-            keyPoints.push({
-                position: index / (audioData.length - 1),
-                amplitude: audioData[index].amplitude,
-                frequency: audioData[index].frequency,
-                originalIndex: index
-            });
-        }
-    } else {
-        const step = audioData.length / (numPoints - 1);
-        for (let i = 0; i < numPoints; i++) {
-            const centerIndex = Math.round(i * step);
-            const actualIndex = Math.min(centerIndex, audioData.length - 1);
-            const windowSize = Math.max(1, Math.floor(audioData.length / (numPoints * 4)));
-            const startIdx = Math.max(0, actualIndex - windowSize);
-            const endIdx = Math.min(audioData.length - 1, actualIndex + windowSize);
-
-            let bestIndex = actualIndex;
-            let bestScore = audioData[actualIndex].amplitude;
-
-            for (let j = startIdx; j <= endIdx; j++) {
-                const score = audioData[j].amplitude + audioData[j].frequency * 0.1;
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestIndex = j;
-                }
-            }
-
-            keyPoints.push({
-                position: bestIndex / (audioData.length - 1),
-                amplitude: audioData[bestIndex].amplitude,
-                frequency: audioData[bestIndex].frequency,
-                originalIndex: bestIndex
-            });
-        }
-    }
-
-    keyPoints[0].position = 0;
-    keyPoints[keyPoints.length - 1].position = 1;
-    return keyPoints;
-};
-
-const interpolateSplinePreservative = (keyPoints, targetLength) => {
-    const interpolatedPoints = [];
-    for (let i = 0; i < targetLength; i++) {
-        const t = i / (targetLength - 1);
-        let segmentIndex = 0;
-        for (let j = 0; j < keyPoints.length - 1; j++) {
-            if (t >= keyPoints[j].position && t <= keyPoints[j + 1].position) {
-                segmentIndex = j;
-                break;
-            }
-        }
-
-        const p0 = keyPoints[Math.max(0, segmentIndex - 1)];
-        const p1 = keyPoints[segmentIndex];
-        const p2 = keyPoints[Math.min(keyPoints.length - 1, segmentIndex + 1)];
-        const p3 = keyPoints[Math.min(keyPoints.length - 1, segmentIndex + 2)];
-
-        const segmentLength = p2.position - p1.position;
-        const localT = segmentLength > 0 ? (t - p1.position) / segmentLength : 0;
-        const tension = 0.3;
-
-        const amplitude = catmullRomInterpolateGentle(p0.amplitude, p1.amplitude, p2.amplitude, p3.amplitude, localT, tension);
-        const frequency = catmullRomInterpolateGentle(p0.frequency, p1.frequency, p2.frequency, p3.frequency, localT, tension);
-
-        interpolatedPoints.push({
-            amplitude: Math.max(0, amplitude),
-            frequency: Math.max(0, frequency),
-            time: i * 0.1
-        });
-    }
-    return interpolatedPoints;
-};
-
 const catmullRomInterpolateGentle = (p0, p1, p2, p3, t, tension = 0.5) => {
     const t2 = t * t;
     const t3 = t2 * t;
     return tension * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (-p0 + 3 * p1 - 3 * p2 + p3) * t3) + (1 - tension) * (p1 + (p2 - p1) * t);
-};
-
-const blendWithOriginalAudio = (smoothedPoints, originalAudio, preservation) => {
-    const blendedPoints = [];
-    for (let i = 0; i < smoothedPoints.length; i++) {
-        const originalIndex = Math.floor(i * (originalAudio.length - 1) / (smoothedPoints.length - 1));
-        const original = originalAudio[Math.min(originalIndex, originalAudio.length - 1)];
-        const smoothed = smoothedPoints[i];
-        const smoothWeight = 1 - preservation;
-        const audioWeight = preservation;
-
-        blendedPoints.push({
-            amplitude: smoothed.amplitude * smoothWeight + original.amplitude * audioWeight,
-            frequency: smoothed.frequency * smoothWeight + original.frequency * audioWeight,
-            time: original.time
-        });
-    }
-    return blendedPoints;
-};
-
-const smoothGeometryForPrinting = (positions, segments, heightSegments, printParams) => {
-    const iterations = Math.max(1, Math.floor(printParams.smoothingStrength * 2));
-    const preservationFactor = printParams.audioPreservation;
-
-    for (let iter = 0; iter < iterations; iter++) {
-        const newPositions = [...positions];
-        const vertexCount = positions.length / 3;
-
-        for (let h = 1; h < heightSegments; h++) {
-            for (let s = 0; s < segments; s++) {
-                const currentVertexIndex = h * (segments + 1) + s;
-                if (currentVertexIndex >= vertexCount) continue;
-                const currentIndex = currentVertexIndex * 3;
-
-                const neighbors = [];
-                if (h > 0) neighbors.push(((h - 1) * (segments + 1) + s) * 3);
-                if (h < heightSegments - 1) neighbors.push(((h + 1) * (segments + 1) + s) * 3);
-
-                if (neighbors.length === 0) continue;
-
-                let avgX = 0, avgY = 0, avgZ = 0;
-                for (let nIdx of neighbors) {
-                    avgX += positions[nIdx];
-                    avgY += positions[nIdx + 1];
-                    avgZ += positions[nIdx + 2];
-                }
-                avgX /= neighbors.length;
-                avgY /= neighbors.length;
-                avgZ /= neighbors.length;
-
-                const smoothingStrength = 0.1;
-                newPositions[currentIndex] = positions[currentIndex] * preservationFactor + (positions[currentIndex] * (1 - smoothingStrength) + avgX * smoothingStrength) * (1 - preservationFactor);
-                newPositions[currentIndex + 1] = positions[currentIndex + 1] * 0.95 + (positions[currentIndex + 1] * (1 - smoothingStrength * 0.3) + avgY * smoothingStrength * 0.3) * 0.05;
-                newPositions[currentIndex + 2] = positions[currentIndex + 2] * preservationFactor + (positions[currentIndex + 2] * (1 - smoothingStrength) + avgZ * smoothingStrength) * (1 - preservationFactor);
-            }
-        }
-
-        for (let i = 0; i < positions.length; i++) {
-            positions[i] = newPositions[i];
-        }
-    }
-};
-
-const reduceSharpSpikes = (positions, segments, heightSegments, printParams) => {
-    const vertexCount = positions.length / 3;
-    const maxSpikeHeight = printParams.maxSpikeHeight / 10;
-    let spikesReduced = 0;
-
-    for (let h = 1; h < heightSegments - 1; h++) {
-        for (let s = 0; s < segments; s++) {
-            const currentVertexIndex = h * (segments + 1) + s;
-            if (currentVertexIndex >= vertexCount) continue;
-            const currentIndex = currentVertexIndex * 3;
-
-            const neighbors = [
-                ((h - 1) * (segments + 1) + s) * 3,
-                ((h + 1) * (segments + 1) + s) * 3,
-                (h * (segments + 1) + ((s - 1 + segments) % segments)) * 3,
-                (h * (segments + 1) + ((s + 1) % segments)) * 3
-            ];
-
-            let avgRadius = 0;
-            for (let nIdx of neighbors) {
-                const nx = positions[nIdx];
-                const nz = positions[nIdx + 2];
-                avgRadius += Math.sqrt(nx * nx + nz * nz);
-            }
-            avgRadius /= neighbors.length;
-
-            const currentX = positions[currentIndex];
-            const currentZ = positions[currentIndex + 2];
-            const currentRadius = Math.sqrt(currentX * currentX + currentZ * currentZ);
-            const radiusDiff = Math.abs(currentRadius - avgRadius);
-
-            if (radiusDiff > maxSpikeHeight * 2.0) {
-                const reductionStrength = 0.5;
-                const targetRadius = avgRadius + (currentRadius - avgRadius) * reductionStrength;
-                if (currentRadius > 0) {
-                    const scale = targetRadius / currentRadius;
-                    positions[currentIndex] *= scale;
-                    positions[currentIndex + 2] *= scale;
-                    spikesReduced++;
-                }
-            }
-        }
-    }
 };
 
 const calculateWavePattern = (angle, normalizedY, wavePattern, amplitude, frequency) => {
